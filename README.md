@@ -4,7 +4,7 @@
 
 ## Description
 
-This GitHub Action provisions an AWS Lambda function using Python runtime via Terraform.
+This GitHub Action provisions an AWS Lambda function using Python runtime via Terraform
 
 ## Inputs
 

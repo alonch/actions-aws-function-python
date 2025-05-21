@@ -1,6 +1,6 @@
 locals {
   function_name       = "${var.name}-${random_id.suffix.hex}"
-  lambda_handler      = "${replace(var.entrypoint_file, ".py", "")}.${var.entrypoint_function}"
+  lambda_handler      = "${replace(replace(var.entrypoint_file, "/", "."), ".py", "")}.${var.entrypoint_function}"
   runtime             = "python${var.python_version}"
   lambda_architecture = var.arm ? ["arm64"] : ["x86_64"]
 

@@ -62,19 +62,6 @@ outputs:
 
 runs:
   using: "composite"
-  env:
-    TF_VAR_name: ${{ inputs.name }}
-    TF_VAR_arm: ${{ inputs.arm }}
-    TF_VAR_python_version: ${{ inputs.python-version }}
-    TF_VAR_entrypoint_file: ${{ inputs.entrypoint-file }}
-    TF_VAR_entrypoint_function: ${{ inputs.entrypoint-function }}
-    TF_VAR_memory: ${{ inputs.memory }}
-    TF_VAR_timeout: ${{ inputs.timeout }}
-    TF_VAR_allow_public_access: ${{ inputs.allow-public-access }}
-    TF_VAR_artifacts: ${{ inputs.artifacts }}
-    TF_VAR_env: ${{ inputs.env }}
-    TF_VAR_permissions: ${{ inputs.permissions }}
-
   steps:
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -96,18 +83,54 @@ runs:
       run: terraform init
       shell: bash
       working-directory: ${{ github.action_path }}
+      env:
+        TF_VAR_name: ${{ inputs.name }}
+        TF_VAR_arm: ${{ inputs.arm }}
+        TF_VAR_python_version: ${{ inputs.python-version }}
+        TF_VAR_entrypoint_file: ${{ inputs.entrypoint-file }}
+        TF_VAR_entrypoint_function: ${{ inputs.entrypoint-function }}
+        TF_VAR_memory: ${{ inputs.memory }}
+        TF_VAR_timeout: ${{ inputs.timeout }}
+        TF_VAR_allow_public_access: ${{ inputs.allow-public-access }}
+        TF_VAR_artifacts: ${{ inputs.artifacts }}
+        TF_VAR_env: ${{ inputs.env }}
+        TF_VAR_permissions: ${{ inputs.permissions }}
 
     - name: Terraform plan
       if: inputs.action == 'plan'
       run: terraform plan
       shell: bash
       working-directory: ${{ github.action_path }}
+      env:
+        TF_VAR_name: ${{ inputs.name }}
+        TF_VAR_arm: ${{ inputs.arm }}
+        TF_VAR_python_version: ${{ inputs.python-version }}
+        TF_VAR_entrypoint_file: ${{ inputs.entrypoint-file }}
+        TF_VAR_entrypoint_function: ${{ inputs.entrypoint-function }}
+        TF_VAR_memory: ${{ inputs.memory }}
+        TF_VAR_timeout: ${{ inputs.timeout }}
+        TF_VAR_allow_public_access: ${{ inputs.allow-public-access }}
+        TF_VAR_artifacts: ${{ inputs.artifacts }}
+        TF_VAR_env: ${{ inputs.env }}
+        TF_VAR_permissions: ${{ inputs.permissions }}
 
     - name: Terraform destroy
       if: inputs.action == 'destroy'
       run: terraform destroy -auto-approve
       shell: bash
       working-directory: ${{ github.action_path }}
+      env:
+        TF_VAR_name: ${{ inputs.name }}
+        TF_VAR_arm: ${{ inputs.arm }}
+        TF_VAR_python_version: ${{ inputs.python-version }}
+        TF_VAR_entrypoint_file: ${{ inputs.entrypoint-file }}
+        TF_VAR_entrypoint_function: ${{ inputs.entrypoint-function }}
+        TF_VAR_memory: ${{ inputs.memory }}
+        TF_VAR_timeout: ${{ inputs.timeout }}
+        TF_VAR_allow_public_access: ${{ inputs.allow-public-access }}
+        TF_VAR_artifacts: ${{ inputs.artifacts }}
+        TF_VAR_env: ${{ inputs.env }}
+        TF_VAR_permissions: ${{ inputs.permissions }}
 
     - name: Terraform apply
       id: terraform
@@ -123,3 +146,15 @@ runs:
         echo "url=${URL}" >> $GITHUB_OUTPUT
       shell: bash
       working-directory: ${{ github.action_path }}
+      env:
+        TF_VAR_name: ${{ inputs.name }}
+        TF_VAR_arm: ${{ inputs.arm }}
+        TF_VAR_python_version: ${{ inputs.python-version }}
+        TF_VAR_entrypoint_file: ${{ inputs.entrypoint-file }}
+        TF_VAR_entrypoint_function: ${{ inputs.entrypoint-function }}
+        TF_VAR_memory: ${{ inputs.memory }}
+        TF_VAR_timeout: ${{ inputs.timeout }}
+        TF_VAR_allow_public_access: ${{ inputs.allow-public-access }}
+        TF_VAR_artifacts: ${{ inputs.artifacts }}
+        TF_VAR_env: ${{ inputs.env }}
+        TF_VAR_permissions: ${{ inputs.permissions }}

@@ -35,7 +35,7 @@ jobs:
 
       # Deploy the Lambda function
       - name: Deploy Lambda function
-        uses: alonch/actions-aws-function-python@main
+        uses: ./
         with:
           name: example-python-function
           python-version: "3.11"

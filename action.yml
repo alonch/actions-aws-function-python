@@ -68,13 +68,18 @@ runs:
       with:
         python-version: '3.11'
 
-    - name: Install dependencies
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: "1.5.7"
+
+    - name: Prepare environment
       run: |
         python -m pip install --upgrade pip
-        pip install terraform-bin
+        pip install pyyaml
       shell: bash
 
-    - name: Setup Terraform
+    - name: Deploy with Terraform
       id: terraform
       run: |
         echo "Deploying Python Lambda Function"

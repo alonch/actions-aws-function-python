@@ -19,20 +19,15 @@ data "archive_file" "lambda_package" {
   type        = "zip"
   output_path = "${path.module}/lambda_function.zip"
 
-  dynamic "source" {
-    for_each = length(var.artifacts) > 0 ? [1] : []
+  dynamic "source_file" {
+    for_each = length(var.artifacts) == 0 ? [var.entrypoint_file] : []
     content {
-      dir = var.artifacts
+      filename = basename(source_file.value)
+      content  = file(source_file.value)
     }
   }
 
-  dynamic "source" {
-    for_each = length(var.artifacts) == 0 ? [1] : []
-    content {
-      filename = basename(var.entrypoint_file)
-      content  = file(var.entrypoint_file)
-    }
-  }
+  source_dir = length(var.artifacts) > 0 ? var.artifacts : null
 }
 
 # Create the IAM role for the Lambda function

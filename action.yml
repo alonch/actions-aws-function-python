@@ -67,22 +67,6 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v2
-      with:
-        terraform_version: "1.5.7"
-
-    - name: Prepare environment
-      run: |
-        python -m pip install --upgrade pip
-        pip install pyyaml
-      shell: bash
-
     - name: Terraform init
       run: |
         terraform init \
@@ -149,12 +133,8 @@ runs:
       if: inputs.action == 'apply'
       run: |
         terraform apply -auto-approve
-
-        # Export outputs with proper sanitization to avoid debug messages
-        # Use grep to filter out any lines containing debug information
-        # Trim any whitespace or newlines with tr
-        ARN=$(terraform output -raw lambda_arn)
-        URL=$(terraform output -raw lambda_url)
+        ARN=$(terraform output -raw lambda_arn | tr -d '\r\n')
+        URL=$(terraform output -raw lambda_url | tr -d '\r\n')
 
         # Set outputs properly
         echo "arn=$ARN" >> "$GITHUB_OUTPUT"

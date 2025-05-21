@@ -80,6 +80,8 @@ runs:
       shell: bash
 
     - name: Terraform init
+      env:
+        TF_BACKEND_key: "actions-aws-function-python/${{ inputs.name }}"
       run: |
         terraform init \
           -backend-config="bucket=$TF_BACKEND_s3" \

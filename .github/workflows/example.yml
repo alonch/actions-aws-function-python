@@ -1,0 +1,49 @@
+name: Deploy Lambda Python Function
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'example/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # Required for AWS authentication
+      contents: read   # Required to checkout the repository
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-session-name: ${{ github.actor }}
+
+      # Optional: Set up Terraform backend
+      - name: Set up backend
+        uses: alonch/actions-aws-backend-setup@main
+        id: backend
+        with:
+          instance: python-lambda-example
+
+      # Deploy the Lambda function
+      - name: Deploy Lambda function
+        uses: alonch/actions-aws-function-python@main
+        with:
+          name: example-python-function
+          python-version: "3.11"
+          entrypoint-file: example/app.py
+          entrypoint-function: handler
+          memory: 256
+          timeout: 10
+          env: |
+            ENVIRONMENT: production
+            LOG_LEVEL: INFO
+          allow-public-access: true

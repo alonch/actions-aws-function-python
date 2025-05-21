@@ -1,0 +1,118 @@
+name: 'AWS Lambda Python Function'
+description: 'Deploy a Python function to AWS Lambda'
+author: 'alonch'
+branding:
+  icon: 'cloud-lightning'
+  color: 'blue'
+
+inputs:
+  action:
+    description: 'Desired outcome: apply, plan or destroy'
+    required: false
+    default: 'apply'
+  name:
+    description: 'Function name'
+    required: true
+  arm:
+    description: 'Run in ARM compute'
+    required: false
+    default: 'true'
+  python-version:
+    description: 'Python version. Supported versions: 3.8, 3.9, 3.10, 3.11, 3.12'
+    required: false
+    default: '3.11'
+  entrypoint-file:
+    description: 'Path to entry file'
+    required: true
+  entrypoint-function:
+    description: 'Function on the entrypoint-file to handle events'
+    required: true
+  memory:
+    description: '128 (in MB) to 10,240 (in MB)'
+    required: false
+    default: '128'
+  env:
+    description: 'List of environment variables in YML format'
+    required: false
+    default: 'CREATE_BY: alonch/actions-aws-function-python'
+  permissions:
+    description: 'List of permissions following Github standard of service: read or write. In YML format'
+    required: false
+    default: ''
+  artifacts:
+    description: 'This folder will be zip and deploy to Lambda'
+    required: false
+    default: ''
+  timeout:
+    description: 'Maximum time in seconds before aborting the execution'
+    required: false
+    default: '3'
+  allow-public-access:
+    description: 'Generate a public URL. WARNING: ANYONE ON THE INTERNET CAN RUN THIS FUNCTION'
+    required: false
+    default: ''
+
+outputs:
+  arn:
+    description: 'ARN of the deployed Lambda function'
+    value: ${{ steps.terraform.outputs.arn }}
+  url:
+    description: 'Public accessible URL, if allow-public-access=true'
+    value: ${{ steps.terraform.outputs.url }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install terraform-bin
+      shell: bash
+
+    - name: Setup Terraform
+      id: terraform
+      run: |
+        echo "Deploying Python Lambda Function"
+        echo "Function Name: ${{ inputs.name }}"
+        echo "Python Version: ${{ inputs.python-version }}"
+        echo "Entrypoint: ${{ inputs.entrypoint-file }}:${{ inputs.entrypoint-function }}"
+
+        # Create terraform vars
+        cat > terraform.tfvars <<EOF
+        name = "${{ inputs.name }}"
+        arm = ${{ inputs.arm }}
+        python_version = "${{ inputs.python-version }}"
+        entrypoint_file = "${{ inputs.entrypoint-file }}"
+        entrypoint_function = "${{ inputs.entrypoint-function }}"
+        memory = ${{ inputs.memory }}
+        timeout = ${{ inputs.timeout }}
+        allow_public_access = "${{ inputs.allow-public-access }}"
+        artifacts = "${{ inputs.artifacts }}"
+        env = "${{ inputs.env }}"
+        permissions = "${{ inputs.permissions }}"
+        EOF
+
+        # Initialize terraform
+        terraform -chdir=${{ github.action_path }} init
+
+        # Apply or plan based on input
+        if [ "${{ inputs.action }}" == "plan" ]; then
+          terraform -chdir=${{ github.action_path }} plan -var-file=terraform.tfvars
+        elif [ "${{ inputs.action }}" == "destroy" ]; then
+          terraform -chdir=${{ github.action_path }} destroy -auto-approve -var-file=terraform.tfvars
+        else
+          terraform -chdir=${{ github.action_path }} apply -auto-approve -var-file=terraform.tfvars
+
+          # Export outputs
+          ARN=$(terraform -chdir=${{ github.action_path }} output -raw lambda_arn 2>/dev/null || echo "")
+          URL=$(terraform -chdir=${{ github.action_path }} output -raw lambda_url 2>/dev/null || echo "")
+
+          echo "arn=${ARN}" >> $GITHUB_OUTPUT
+          echo "url=${URL}" >> $GITHUB_OUTPUT
+        fi
+      shell: bash

@@ -99,7 +99,7 @@ runs:
         TF_VAR_name: ${{ inputs.name }}
         TF_VAR_arm: ${{ inputs.arm }}
         TF_VAR_python_version: ${{ inputs.python-version }}
-        TF_VAR_entrypoint_file: ${{ github.workspace }}/${{ inputs.entrypoint-file }}
+        TF_VAR_entrypoint_file: ${{ inputs.entrypoint-file }}
         TF_VAR_entrypoint_function: ${{ inputs.entrypoint-function }}
         TF_VAR_memory: ${{ inputs.memory }}
         TF_VAR_timeout: ${{ inputs.timeout }}

@@ -105,10 +105,10 @@ resource "aws_lambda_function_url" "function_url" {
   function_name      = aws_lambda_function.function.function_name
   authorization_type = "NONE"
 
-  cors {
-    allow_origins = ["*"]
-    allow_methods = ["GET", "POST"]
-    allow_headers = ["*"]
-    max_age       = 86400
-  }
+  # cors {
+  #  allow_origins = ["*"]
+  #  allow_methods = ["GET", "POST"]
+  #  allow_headers = ["*"]
+  #  max_age       = 86400
+  #}
 }

@@ -1,5 +1,5 @@
 locals {
-  function_name       = var.name
+  function_name       = "${var.name}-${random_id.suffix.hex}"
   lambda_handler      = "${replace(var.entrypoint_file, ".py", "")}.${var.entrypoint_function}"
   runtime             = "python${var.python_version}"
   lambda_architecture = var.arm ? ["arm64"] : ["x86_64"]
@@ -14,6 +14,11 @@ locals {
   create_function_url = length(var.allow_public_access) > 0
 }
 
+# Generate random suffix for unique resource naming
+resource "random_id" "suffix" {
+  byte_length = 4
+}
+
 # Create a zip archive from the artifacts directory or from the entrypoint file
 data "archive_file" "lambda_package" {
   type        = "zip"
@@ -25,7 +30,7 @@ data "archive_file" "lambda_package" {
 
 # Create the IAM role for the Lambda function
 resource "aws_iam_role" "lambda_role" {
-  name = "${local.function_name}-role"
+  name = "${var.name}-role-${random_id.suffix.hex}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"

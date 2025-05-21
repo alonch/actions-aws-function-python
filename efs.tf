@@ -24,7 +24,7 @@ data "aws_subnets" "default" {
 # Create security group for EFS
 resource "aws_security_group" "efs" {
   count       = local.create_efs ? 1 : 0
-  name        = "${var.name}-efs-sg"
+  name        = "${var.name}-efs-sg-${random_id.suffix.hex}"
   description = "Allow NFS traffic from Lambda to EFS"
   vpc_id      = data.aws_vpc.default[0].id
 
@@ -44,14 +44,14 @@ resource "aws_security_group" "efs" {
   }
 
   tags = {
-    Name = "${var.name}-efs-sg"
+    Name = "${var.name}-efs-sg-${random_id.suffix.hex}"
   }
 }
 
 # Create security group for Lambda
 resource "aws_security_group" "lambda" {
   count       = local.create_efs ? 1 : 0
-  name        = "${var.name}-lambda-sg"
+  name        = "${var.name}-lambda-sg-${random_id.suffix.hex}"
   description = "Allow Lambda to access EFS"
   vpc_id      = data.aws_vpc.default[0].id
 
@@ -63,14 +63,14 @@ resource "aws_security_group" "lambda" {
   }
 
   tags = {
-    Name = "${var.name}-lambda-sg"
+    Name = "${var.name}-lambda-sg-${random_id.suffix.hex}"
   }
 }
 
 # Create EFS file system
 resource "aws_efs_file_system" "this" {
   count          = local.create_efs ? 1 : 0
-  creation_token = "${var.name}-efs"
+  creation_token = "${var.name}-efs-${random_id.suffix.hex}"
   encrypted      = true
 
   lifecycle_policy {
@@ -78,7 +78,7 @@ resource "aws_efs_file_system" "this" {
   }
 
   tags = {
-    Name = "${var.name}-efs"
+    Name = "${var.name}-efs-${random_id.suffix.hex}"
   }
 }
 
@@ -119,7 +119,7 @@ resource "aws_efs_access_point" "this" {
   }
 
   tags = {
-    Name = "${var.name}-access-point"
+    Name = "${var.name}-access-point-${random_id.suffix.hex}"
   }
 }
 
@@ -133,7 +133,7 @@ resource "aws_iam_role_policy_attachment" "lambda_vpc_access" {
 # Add EFS policy to Lambda role
 resource "aws_iam_policy" "lambda_efs_access" {
   count       = local.create_efs ? 1 : 0
-  name        = "${var.name}-efs-access"
+  name        = "${var.name}-efs-access-${random_id.suffix.hex}"
   description = "Allow Lambda to access EFS"
 
   policy = jsonencode({

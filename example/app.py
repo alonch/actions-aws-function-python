@@ -17,6 +17,7 @@ def handler(event, context):
             "Content-Type": "application/json"
         },
         "body": json.dumps({
-            "message": "Hello from AWS Lambda Python function!"
+            "message": "Hello from AWS Lambda Python function!",
+            "event": event
         })
     }

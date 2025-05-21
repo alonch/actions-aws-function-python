@@ -37,7 +37,7 @@ jobs:
         with:
           name: demo
           python-version: "3.11"
-          entrypoint-file: app.py
+          entrypoint-file: api/app.py
           entrypoint-function: handler
           artifacts: dist  # Specify the artifacts directory
           volume: db

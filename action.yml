@@ -85,7 +85,7 @@ runs:
         TF_VAR_memory: ${{ inputs.memory }}
         TF_VAR_timeout: ${{ inputs.timeout }}
         TF_VAR_allow_public_access: ${{ inputs.allow-public-access }}
-        TF_VAR_artifacts: ${{ inputs.artifacts }}
+        TF_VAR_artifacts: ${{ github.workspace }}/${{ inputs.artifacts }}
         TF_VAR_env: ${{ inputs.env }}
         TF_VAR_permissions: ${{ inputs.permissions }}
         TF_VAR_volume: ${{ inputs.volume }}
@@ -104,7 +104,7 @@ runs:
         TF_VAR_memory: ${{ inputs.memory }}
         TF_VAR_timeout: ${{ inputs.timeout }}
         TF_VAR_allow_public_access: ${{ inputs.allow-public-access }}
-        TF_VAR_artifacts: ${{ inputs.artifacts }}
+        TF_VAR_artifacts: ${{ github.workspace }}/${{ inputs.artifacts }}
         TF_VAR_env: ${{ inputs.env }}
         TF_VAR_permissions: ${{ inputs.permissions }}
         TF_VAR_volume: ${{ inputs.volume }}
@@ -123,7 +123,7 @@ runs:
         TF_VAR_memory: ${{ inputs.memory }}
         TF_VAR_timeout: ${{ inputs.timeout }}
         TF_VAR_allow_public_access: ${{ inputs.allow-public-access }}
-        TF_VAR_artifacts: ${{ inputs.artifacts }}
+        TF_VAR_artifacts: ${{ github.workspace }}/${{ inputs.artifacts }}
         TF_VAR_env: ${{ inputs.env }}
         TF_VAR_permissions: ${{ inputs.permissions }}
         TF_VAR_volume: ${{ inputs.volume }}
@@ -150,7 +150,7 @@ runs:
         TF_VAR_memory: ${{ inputs.memory }}
         TF_VAR_timeout: ${{ inputs.timeout }}
         TF_VAR_allow_public_access: ${{ inputs.allow-public-access }}
-        TF_VAR_artifacts: ${{ inputs.artifacts }}
+        TF_VAR_artifacts: ${{ github.workspace }}/${{ inputs.artifacts }}
         TF_VAR_env: ${{ inputs.env }}
         TF_VAR_permissions: ${{ inputs.permissions }}
         TF_VAR_volume: ${{ inputs.volume }}

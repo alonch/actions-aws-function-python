@@ -138,17 +138,10 @@ runs:
         TF_VAR_permissions: ${{ inputs.permissions }}
 
     - name: Terraform apply
-      id: terraform
+      id: apply
       if: inputs.action == 'apply'
       run: |
         terraform apply -auto-approve
-
-        # Export outputs
-        ARN=$(terraform output -raw lambda_arn 2>/dev/null || echo "")
-        URL=$(terraform output -raw lambda_url 2>/dev/null || echo "")
-
-        echo "arn=${ARN}" >> $GITHUB_OUTPUT
-        echo "url=${URL}" >> $GITHUB_OUTPUT
       shell: bash
       working-directory: ${{ github.action_path }}
       env:
@@ -163,3 +156,19 @@ runs:
         TF_VAR_artifacts: ${{ inputs.artifacts }}
         TF_VAR_env: ${{ inputs.env }}
         TF_VAR_permissions: ${{ inputs.permissions }}
+
+    - name: Set outputs
+      id: terraform
+      if: inputs.action == 'apply'
+      run: |
+        ARN=$(terraform output -raw lambda_arn 2>/dev/null || echo "")
+        if [ -n "$ARN" ]; then
+          echo "arn=$ARN" >> $GITHUB_OUTPUT
+        fi
+
+        URL=$(terraform output -raw lambda_url 2>/dev/null || echo "")
+        if [ -n "$URL" ]; then
+          echo "url=$URL" >> $GITHUB_OUTPUT
+        fi
+      shell: bash
+      working-directory: ${{ github.action_path }}

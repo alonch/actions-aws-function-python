@@ -75,3 +75,9 @@ variable "allow_public_access" {
   type        = string
   default     = ""
 }
+
+variable "volume" {
+  description = "EFS volume mount point. If set, an EFS volume will be created and mounted to /mnt/{volume_name}"
+  type        = string
+  default     = ""
+}

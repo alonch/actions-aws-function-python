@@ -51,6 +51,10 @@ inputs:
     description: 'Generate a public URL. WARNING: ANYONE ON THE INTERNET CAN RUN THIS FUNCTION'
     required: false
     default: ''
+  volume:
+    description: 'Creates an EFS volume and mounts it to /mnt/{volume}. Persists data across invocations.'
+    required: false
+    default: ''
 
 outputs:
   arn:
@@ -100,6 +104,7 @@ runs:
         TF_VAR_artifacts: ${{ inputs.artifacts }}
         TF_VAR_env: ${{ inputs.env }}
         TF_VAR_permissions: ${{ inputs.permissions }}
+        TF_VAR_volume: ${{ inputs.volume }}
 
     - name: Terraform plan
       if: inputs.action == 'plan'
@@ -118,6 +123,7 @@ runs:
         TF_VAR_artifacts: ${{ inputs.artifacts }}
         TF_VAR_env: ${{ inputs.env }}
         TF_VAR_permissions: ${{ inputs.permissions }}
+        TF_VAR_volume: ${{ inputs.volume }}
 
     - name: Terraform destroy
       if: inputs.action == 'destroy'
@@ -136,6 +142,7 @@ runs:
         TF_VAR_artifacts: ${{ inputs.artifacts }}
         TF_VAR_env: ${{ inputs.env }}
         TF_VAR_permissions: ${{ inputs.permissions }}
+        TF_VAR_volume: ${{ inputs.volume }}
 
     - name: Terraform apply
       id: terraform
@@ -166,3 +173,4 @@ runs:
         TF_VAR_artifacts: ${{ inputs.artifacts }}
         TF_VAR_env: ${{ inputs.env }}
         TF_VAR_permissions: ${{ inputs.permissions }}
+        TF_VAR_volume: ${{ inputs.volume }}

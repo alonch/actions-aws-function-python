@@ -22,6 +22,7 @@ This GitHub Action provisions an AWS Lambda function using Python runtime via Te
 | artifacts           | This folder will be zip and deploy to Lambda                                           | false    | ""                                           |
 | timeout             | Maximum time in seconds before aborting the execution                                  | false    | 3                                            |
 | allow-public-access | Generate a public URL. WARNING: ANYONE ON THE INTERNET CAN RUN THIS FUNCTION           | false    | ""                                           |
+| volume              | Creates an EFS volume and mounts it to /mnt/{volume}. Persists data across invocations | false    | ""                                           |
 
 ## Outputs
 
@@ -58,3 +59,24 @@ jobs:
           artifacts: dist
           allow-public-access: true
 ```
+
+## Using Persistent Storage with EFS
+
+To create a Lambda function with persistent storage, use the `volume` parameter:
+
+```yaml
+- uses: alonch/actions-aws-function-python@main
+  with:
+    name: stateful-lambda-function
+    entrypoint-file: src/app.py
+    entrypoint-function: handler
+    volume: db
+    timeout: 10 # Note: min 10 seconds when using EFS
+```
+
+This will:
+1. Create an EFS file system in your default VPC
+2. Mount it to your Lambda function at `/mnt/db`
+3. All data written to this path will persist across function invocations
+
+**Note:** Using EFS requires the Lambda to run in a VPC, which can increase cold start times. The minimum timeout when using EFS is 10 seconds.

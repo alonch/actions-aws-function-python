@@ -62,6 +62,33 @@ resource "aws_lambda_function" "function" {
   environment {
     variables = local.env_vars
   }
+
+  # VPC configuration for EFS
+  dynamic "vpc_config" {
+    for_each = local.create_efs ? [1] : []
+    content {
+      subnet_ids         = data.aws_subnets.default[0].ids
+      security_group_ids = [aws_security_group.lambda[0].id]
+    }
+  }
+
+  # EFS configuration
+  dynamic "file_system_config" {
+    for_each = local.create_efs ? [1] : []
+    content {
+      arn              = aws_efs_access_point.this[0].arn
+      local_mount_path = local.mount_path
+    }
+  }
+
+  # Increase timeout for functions with EFS to at least 10 seconds
+  # as Lambda cold starts with EFS can take longer
+  lifecycle {
+    precondition {
+      condition     = !local.create_efs || var.timeout >= 10
+      error_message = "When using EFS volumes, timeout must be at least 10 seconds to accommodate for potential cold starts."
+    }
+  }
 }
 
 # Create function URL if public access is allowed

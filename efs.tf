@@ -90,10 +90,19 @@ resource "aws_efs_mount_target" "this" {
   security_groups = [aws_security_group.efs[0].id]
 }
 
+# Wait for EFS mount targets to become fully available
+# This prevents the "not all are in the available life cycle state yet" error
+resource "time_sleep" "wait_for_efs_mount_targets" {
+  count           = local.create_efs ? 1 : 0
+  depends_on      = [aws_efs_mount_target.this]
+  create_duration = "90s"
+}
+
 # Create access point with proper directory permissions
 resource "aws_efs_access_point" "this" {
   count          = local.create_efs ? 1 : 0
   file_system_id = aws_efs_file_system.this[0].id
+  depends_on     = [time_sleep.wait_for_efs_mount_targets]
 
   posix_user {
     gid = 1000

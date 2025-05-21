@@ -143,9 +143,15 @@ runs:
       run: |
         terraform apply -auto-approve
 
-        # Export outputs
-        echo "arn=$(terraform output -raw lambda_arn 2>/dev/null || echo '')" >> $GITHUB_OUTPUT
-        echo "url=$(terraform output -raw lambda_url 2>/dev/null || echo '')" >> $GITHUB_OUTPUT
+        # Export outputs with proper sanitization to avoid debug messages
+        # Use grep to filter out any lines containing debug information
+        # Trim any whitespace or newlines with tr
+        ARN=$(terraform output -raw lambda_arn 2>/dev/null | grep -v "debug" | tr -d '\n\r' || echo '')
+        URL=$(terraform output -raw lambda_url 2>/dev/null | grep -v "debug" | tr -d '\n\r' || echo '')
+
+        # Set outputs properly
+        echo "arn=$ARN" >> "$GITHUB_OUTPUT"
+        echo "url=$URL" >> "$GITHUB_OUTPUT"
       shell: bash
       working-directory: ${{ github.action_path }}
       env:

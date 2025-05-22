@@ -93,3 +93,9 @@ variable "existing_efs_id" {
   type        = string
   default     = ""
 }
+
+variable "existing_mount_target_id" {
+  description = "ID of an existing mount target for the EFS file system. Used to determine if mount targets already exist."
+  type        = string
+  default     = ""
+}

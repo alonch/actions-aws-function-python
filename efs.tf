@@ -16,6 +16,10 @@ locals {
   # Set file system ID based on whether we're using existing or new
   file_system_id = local.has_existing_efs ? var.existing_efs_id : (local.create_new_efs ? aws_efs_file_system.this[0].id : "")
   file_system_arn = local.has_existing_efs ? "arn:aws:elasticfilesystem:${data.aws_region.current[0].name}:${data.aws_caller_identity.current[0].account_id}:file-system/${var.existing_efs_id}" : (local.create_new_efs ? aws_efs_file_system.this[0].arn : "")
+
+  # Use AWS CLI to get mount target ID, passed as environment variable
+  mount_target_id = var.existing_mount_target_id
+  has_mount_target = local.has_existing_efs && var.existing_mount_target_id != ""
 }
 
 # Get AWS region and account ID for ARN construction
@@ -115,10 +119,17 @@ resource "aws_efs_file_system" "this" {
   }
 }
 
-# Get existing mount targets if using existing EFS
-data "aws_efs_mount_targets" "existing" {
+# Find a mount target in the first availability zone
+# This will help us determine if the mount targets exist already
+data "aws_efs_file_system" "existing" {
   count = local.has_existing_efs ? 1 : 0
   file_system_id = var.existing_efs_id
+}
+
+# Look up a specific mount target if we have one
+data "aws_efs_mount_target" "existing" {
+  count = local.has_mount_target ? 1 : 0
+  mount_target_id = local.mount_target_id
 }
 
 # Create mount targets in all available subnets (only for new EFS)

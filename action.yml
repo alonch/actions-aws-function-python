@@ -99,9 +99,26 @@ runs:
           echo "Found existing EFS with ID: $EFS_ID"
           echo "EXISTING_EFS_ID=$EFS_ID" >> $GITHUB_ENV
           echo "EFS_REUSED=true" >> $GITHUB_ENV
+
+          # Now get the mount targets for this EFS
+          MOUNT_TARGETS=$(aws efs describe-mount-targets \
+            --file-system-id $EFS_ID \
+            --query "MountTargets[0].MountTargetId" \
+            --output text)
+
+          if [ -n "$MOUNT_TARGETS" ]; then
+            # Just take the first mount target
+            MOUNT_TARGET_ID=$(echo $MOUNT_TARGETS | awk '{print $1}')
+            echo "Found mount target: $MOUNT_TARGET_ID"
+            echo "EXISTING_MOUNT_TARGET_ID=$MOUNT_TARGET_ID" >> $GITHUB_ENV
+          else
+            echo "No mount targets found for EFS $EFS_ID"
+            echo "EXISTING_MOUNT_TARGET_ID=" >> $GITHUB_ENV
+          fi
         else
           echo "No existing EFS found with tag volume-name=${{ inputs.volume-name }}"
           echo "EXISTING_EFS_ID=" >> $GITHUB_ENV
+          echo "EXISTING_MOUNT_TARGET_ID=" >> $GITHUB_ENV
           echo "EFS_REUSED=false" >> $GITHUB_ENV
         fi
       shell: bash
@@ -130,6 +147,7 @@ runs:
         TF_VAR_volume_name: ${{ inputs.volume-name }}
         TF_VAR_volume_path: ${{ inputs.volume-path }}
         TF_VAR_existing_efs_id: ${{ env.EXISTING_EFS_ID }}
+        TF_VAR_existing_mount_target_id: ${{ env.EXISTING_MOUNT_TARGET_ID }}
 
     - name: Terraform plan
       if: inputs.action == 'plan'
@@ -151,6 +169,7 @@ runs:
         TF_VAR_volume_name: ${{ inputs.volume-name }}
         TF_VAR_volume_path: ${{ inputs.volume-path }}
         TF_VAR_existing_efs_id: ${{ env.EXISTING_EFS_ID }}
+        TF_VAR_existing_mount_target_id: ${{ env.EXISTING_MOUNT_TARGET_ID }}
 
     - name: Terraform destroy
       if: inputs.action == 'destroy'
@@ -172,6 +191,7 @@ runs:
         TF_VAR_volume_name: ${{ inputs.volume-name }}
         TF_VAR_volume_path: ${{ inputs.volume-path }}
         TF_VAR_existing_efs_id: ${{ env.EXISTING_EFS_ID }}
+        TF_VAR_existing_mount_target_id: ${{ env.EXISTING_MOUNT_TARGET_ID }}
 
     - name: Terraform apply
       id: terraform
@@ -211,3 +231,4 @@ runs:
         TF_VAR_volume_name: ${{ inputs.volume-name }}
         TF_VAR_volume_path: ${{ inputs.volume-path }}
         TF_VAR_existing_efs_id: ${{ env.EXISTING_EFS_ID }}
+        TF_VAR_existing_mount_target_id: ${{ env.EXISTING_MOUNT_TARGET_ID }}

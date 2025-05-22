@@ -63,9 +63,9 @@ resource "aws_lambda_function" "function" {
   memory_size      = var.memory
   timeout          = var.timeout
   architectures    = local.lambda_architecture
-  depends_on = [aws_iam_role_policy_attachment.lambda_basic,
-    aws_iam_role_policy_attachment.lambda_vpc_access,
-  time_sleep.wait_for_efs_mount_targets]
+  depends_on       = [aws_iam_role_policy_attachment.lambda_basic,
+                     aws_iam_role_policy_attachment.lambda_vpc_access,
+                     time_sleep.wait_for_efs_mount_targets]
 
   environment {
     variables = local.env_vars
@@ -73,7 +73,7 @@ resource "aws_lambda_function" "function" {
 
   # VPC configuration for EFS
   dynamic "vpc_config" {
-    for_each = local.use_efs ? [1] : []
+    for_each = local.create_efs ? [1] : []
     content {
       subnet_ids         = data.aws_subnets.default[0].ids
       security_group_ids = [aws_security_group.lambda[0].id]
@@ -82,10 +82,10 @@ resource "aws_lambda_function" "function" {
 
   # EFS configuration
   dynamic "file_system_config" {
-    for_each = local.use_efs ? [1] : []
+    for_each = local.create_efs ? [1] : []
     content {
-      arn              = local.access_point_arn
-      local_mount_path = local.volume_path
+      arn              = aws_efs_access_point.this[0].arn
+      local_mount_path = local.mount_path
     }
   }
 
@@ -93,7 +93,7 @@ resource "aws_lambda_function" "function" {
   # as Lambda cold starts with EFS can take longer
   lifecycle {
     precondition {
-      condition     = !local.use_efs || var.timeout >= 10
+      condition     = !local.create_efs || var.timeout >= 10
       error_message = "When using EFS volumes, timeout must be at least 10 seconds to accommodate for potential cold starts."
     }
   }

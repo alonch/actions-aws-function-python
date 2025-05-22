@@ -76,26 +76,8 @@ variable "allow_public_access" {
   default     = ""
 }
 
-variable "volume_name" {
-  description = "Name of the EFS volume to create or reuse. If an EFS with this name (as a tag) exists, it will be reused."
-  type        = string
-  default     = ""
-}
-
-variable "volume_path" {
-  description = "Path where the EFS volume should be mounted (e.g., /mnt/data). Defaults to /mnt/{volume_name} if not specified."
-  type        = string
-  default     = ""
-}
-
-variable "existing_efs_id" {
-  description = "ID of an existing EFS file system to use. If provided, a new EFS will not be created."
-  type        = string
-  default     = ""
-}
-
-variable "existing_mount_target_id" {
-  description = "ID of an existing mount target for the EFS file system. Used to determine if mount targets already exist."
+variable "volume" {
+  description = "EFS volume mount point. If set, an EFS volume will be created and mounted to /mnt/{volume_name}"
   type        = string
   default     = ""
 }

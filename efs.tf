@@ -3,22 +3,22 @@ locals {
   volume_name = var.volume_name
 
   # Check if volume name is specified and if we have an existing EFS ID
-  has_volume = local.volume_name != ""
+  has_volume       = local.volume_name != ""
   has_existing_efs = var.existing_efs_id != ""
 
   # Determine if we need to create a new EFS or use existing
   create_new_efs = local.has_volume && !local.has_existing_efs
-  use_efs = local.has_volume
+  use_efs        = local.has_volume
 
   # Set volume path based on volume name
   volume_path = var.volume_path != "" ? var.volume_path : (local.has_volume ? "/mnt/${local.volume_name}" : "")
 
   # Set file system ID based on whether we're using existing or new
-  file_system_id = local.has_existing_efs ? var.existing_efs_id : (local.create_new_efs ? aws_efs_file_system.this[0].id : "")
+  file_system_id  = local.has_existing_efs ? var.existing_efs_id : (local.create_new_efs ? aws_efs_file_system.this[0].id : "")
   file_system_arn = local.has_existing_efs ? "arn:aws:elasticfilesystem:${data.aws_region.current[0].name}:${data.aws_caller_identity.current[0].account_id}:file-system/${var.existing_efs_id}" : (local.create_new_efs ? aws_efs_file_system.this[0].arn : "")
 
   # Use AWS CLI to get mount target ID, passed as environment variable
-  mount_target_id = var.existing_mount_target_id
+  mount_target_id  = var.existing_mount_target_id
   has_mount_target = local.has_existing_efs && var.existing_mount_target_id != ""
 }
 
@@ -33,14 +33,14 @@ data "aws_caller_identity" "current" {
 
 # Get existing EFS details if we're using an existing EFS
 data "aws_efs_file_system" "existing" {
-  count = local.has_existing_efs ? 1 : 0
+  count          = local.has_existing_efs ? 1 : 0
   file_system_id = var.existing_efs_id
 }
 
 # Get default VPC and subnets
 data "aws_vpc" "default" {
-  count      = local.use_efs ? 1 : 0
-  default    = true
+  count   = local.use_efs ? 1 : 0
+  default = true
 }
 
 data "aws_subnets" "default" {
@@ -78,7 +78,7 @@ resource "aws_security_group" "efs" {
   }
 
   tags = {
-    Name = "${var.name}-efs-sg-${random_id.suffix.hex}"
+    Name          = "${var.name}-efs-sg-${random_id.suffix.hex}"
     "volume-name" = local.volume_name
   }
 }
@@ -98,7 +98,7 @@ resource "aws_security_group" "lambda" {
   }
 
   tags = {
-    Name = "${var.name}-lambda-sg-${random_id.suffix.hex}"
+    Name          = "${var.name}-lambda-sg-${random_id.suffix.hex}"
     "volume-name" = local.volume_name
   }
 }
@@ -114,21 +114,14 @@ resource "aws_efs_file_system" "this" {
   }
 
   tags = {
-    Name = "${var.name}-efs-${random_id.suffix.hex}"
+    Name          = "${var.name}-efs-${random_id.suffix.hex}"
     "volume-name" = local.volume_name
   }
 }
 
-# Find a mount target in the first availability zone
-# This will help us determine if the mount targets exist already
-data "aws_efs_file_system" "existing" {
-  count = local.has_existing_efs ? 1 : 0
-  file_system_id = var.existing_efs_id
-}
-
 # Look up a specific mount target if we have one
 data "aws_efs_mount_target" "existing" {
-  count = local.has_mount_target ? 1 : 0
+  count           = local.has_mount_target ? 1 : 0
   mount_target_id = local.mount_target_id
 }
 
@@ -169,7 +162,7 @@ resource "aws_efs_access_point" "new" {
   }
 
   tags = {
-    Name = "${var.name}-access-point-${random_id.suffix.hex}"
+    Name          = "${var.name}-access-point-${random_id.suffix.hex}"
     "volume-name" = local.volume_name
   }
 }
@@ -194,14 +187,14 @@ resource "aws_efs_access_point" "existing" {
   }
 
   tags = {
-    Name = "${var.name}-access-point-${random_id.suffix.hex}"
+    Name          = "${var.name}-access-point-${random_id.suffix.hex}"
     "volume-name" = local.volume_name
   }
 }
 
 # Local to determine which access point to use
 locals {
-  access_point_id = local.create_new_efs ? aws_efs_access_point.new[0].id : (local.has_existing_efs ? aws_efs_access_point.existing[0].id : "")
+  access_point_id  = local.create_new_efs ? aws_efs_access_point.new[0].id : (local.has_existing_efs ? aws_efs_access_point.existing[0].id : "")
   access_point_arn = local.create_new_efs ? aws_efs_access_point.new[0].arn : (local.has_existing_efs ? aws_efs_access_point.existing[0].arn : "")
 }
 

@@ -63,9 +63,9 @@ resource "aws_lambda_function" "function" {
   memory_size      = var.memory
   timeout          = var.timeout
   architectures    = local.lambda_architecture
-  depends_on       = [aws_iam_role_policy_attachment.lambda_basic,
-                     aws_iam_role_policy_attachment.lambda_vpc_access,
-                     time_sleep.wait_for_efs_mount_targets]
+  depends_on = [aws_iam_role_policy_attachment.lambda_basic,
+    aws_iam_role_policy_attachment.lambda_vpc_access,
+  time_sleep.wait_for_efs_mount_targets]
 
   environment {
     variables = local.env_vars

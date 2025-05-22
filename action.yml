@@ -51,8 +51,12 @@ inputs:
     description: 'Generate a public URL. WARNING: ANYONE ON THE INTERNET CAN RUN THIS FUNCTION'
     required: false
     default: ''
-  volume:
-    description: 'Creates an EFS volume and mounts it to /mnt/{volume}. Persists data across invocations.'
+  volume-name:
+    description: 'Name of the EFS volume to create or reuse. If an EFS with this name (as a tag) exists, it will be reused.'
+    required: false
+    default: ''
+  volume-path:
+    description: 'Path where the EFS volume should be mounted (e.g., /mnt/data). Defaults to /mnt/{volume-name}.'
     required: false
     default: ''
 
@@ -63,6 +67,18 @@ outputs:
   url:
     description: 'Public accessible URL, if allow-public-access=true'
     value: ${{ steps.terraform.outputs.url }}
+  efs_filesystem_id:
+    description: 'ID of the EFS file system (if using EFS)'
+    value: ${{ steps.terraform.outputs.efs_filesystem_id }}
+  efs_access_point_id:
+    description: 'ID of the EFS access point (if using EFS)'
+    value: ${{ steps.terraform.outputs.efs_access_point_id }}
+  efs_mount_path:
+    description: 'Path where the EFS volume is mounted (if using EFS)'
+    value: ${{ steps.terraform.outputs.efs_mount_path }}
+  efs_is_reused:
+    description: 'Whether an existing EFS file system was reused'
+    value: ${{ steps.terraform.outputs.efs_is_reused }}
 
 runs:
   using: "composite"
@@ -88,7 +104,8 @@ runs:
         TF_VAR_artifacts: ${{ github.workspace }}/${{ inputs.artifacts }}
         TF_VAR_env: ${{ inputs.env }}
         TF_VAR_permissions: ${{ inputs.permissions }}
-        TF_VAR_volume: ${{ inputs.volume }}
+        TF_VAR_volume_name: ${{ inputs.volume-name }}
+        TF_VAR_volume_path: ${{ inputs.volume-path }}
 
     - name: Terraform plan
       if: inputs.action == 'plan'
@@ -107,7 +124,8 @@ runs:
         TF_VAR_artifacts: ${{ github.workspace }}/${{ inputs.artifacts }}
         TF_VAR_env: ${{ inputs.env }}
         TF_VAR_permissions: ${{ inputs.permissions }}
-        TF_VAR_volume: ${{ inputs.volume }}
+        TF_VAR_volume_name: ${{ inputs.volume-name }}
+        TF_VAR_volume_path: ${{ inputs.volume-path }}
 
     - name: Terraform destroy
       if: inputs.action == 'destroy'
@@ -126,7 +144,8 @@ runs:
         TF_VAR_artifacts: ${{ github.workspace }}/${{ inputs.artifacts }}
         TF_VAR_env: ${{ inputs.env }}
         TF_VAR_permissions: ${{ inputs.permissions }}
-        TF_VAR_volume: ${{ inputs.volume }}
+        TF_VAR_volume_name: ${{ inputs.volume-name }}
+        TF_VAR_volume_path: ${{ inputs.volume-path }}
 
     - name: Terraform apply
       id: terraform
@@ -135,10 +154,18 @@ runs:
         terraform apply -auto-approve
         ARN=$(terraform output -raw lambda_arn | tr -d '\r\n')
         URL=$(terraform output -raw lambda_url | tr -d '\r\n')
+        EFS_ID=$(terraform output -raw efs_filesystem_id | tr -d '\r\n')
+        EFS_AP=$(terraform output -raw efs_access_point_id | tr -d '\r\n')
+        EFS_PATH=$(terraform output -raw efs_mount_path | tr -d '\r\n')
+        EFS_REUSED=$(terraform output -raw efs_is_reused | tr -d '\r\n')
 
         # Set outputs properly
         echo "arn=$ARN" >> "$GITHUB_OUTPUT"
         echo "url=$URL" >> "$GITHUB_OUTPUT"
+        echo "efs_filesystem_id=$EFS_ID" >> "$GITHUB_OUTPUT"
+        echo "efs_access_point_id=$EFS_AP" >> "$GITHUB_OUTPUT"
+        echo "efs_mount_path=$EFS_PATH" >> "$GITHUB_OUTPUT"
+        echo "efs_is_reused=$EFS_REUSED" >> "$GITHUB_OUTPUT"
       shell: bash
       working-directory: ${{ github.action_path }}
       env:
@@ -153,4 +180,5 @@ runs:
         TF_VAR_artifacts: ${{ github.workspace }}/${{ inputs.artifacts }}
         TF_VAR_env: ${{ inputs.env }}
         TF_VAR_permissions: ${{ inputs.permissions }}
-        TF_VAR_volume: ${{ inputs.volume }}
+        TF_VAR_volume_name: ${{ inputs.volume-name }}
+        TF_VAR_volume_path: ${{ inputs.volume-path }}

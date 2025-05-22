@@ -40,7 +40,8 @@ jobs:
           entrypoint-file: api/app.py
           entrypoint-function: handler
           artifacts: dist  # Specify the artifacts directory
-          volume: db
+          volume-name: db
+          volume-path: /mnt/db
           memory: 256
           timeout: 10
           env: |

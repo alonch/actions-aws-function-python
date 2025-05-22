@@ -76,8 +76,14 @@ variable "allow_public_access" {
   default     = ""
 }
 
-variable "volume" {
-  description = "EFS volume mount point. If set, an EFS volume will be created and mounted to /mnt/{volume_name}"
+variable "volume_name" {
+  description = "Name of the EFS volume to create or reuse. If an EFS with this name (as a tag) exists, it will be reused."
+  type        = string
+  default     = ""
+}
+
+variable "volume_path" {
+  description = "Path where the EFS volume should be mounted (e.g., /mnt/data). Defaults to /mnt/{volume_name} if not specified."
   type        = string
   default     = ""
 }

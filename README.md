@@ -22,7 +22,8 @@ This GitHub Action provisions an AWS Lambda function using Python runtime via Te
 | artifacts           | This folder will be zip and deploy to Lambda                                           | false    | ""                                           |
 | timeout             | Maximum time in seconds before aborting the execution                                  | false    | 3                                            |
 | allow-public-access | Generate a public URL. WARNING: ANYONE ON THE INTERNET CAN RUN THIS FUNCTION           | false    | ""                                           |
-| volume              | Creates an EFS volume and mounts it to /mnt/{volume}. Persists data across invocations | false    | ""                                           |
+| volume-name         | Name of the EFS volume to create or reuse. If a volume with this name (as a tag) exists, it will be reused | false    | ""                                           |
+| volume-path         | Path where the EFS volume should be mounted (e.g., /mnt/data). Defaults to /mnt/{volume-name} | false    | ""                                           |
 
 ## Outputs
 
@@ -30,6 +31,10 @@ This GitHub Action provisions an AWS Lambda function using Python runtime via Te
 | ---- | --------------------------------------------------- |
 | url  | Public accessible URL, if allow-public-access=true |
 | arn  | AWS Lambda ARN                                      |
+| efs_filesystem_id | ID of the EFS file system (if using EFS) |
+| efs_access_point_id | ID of the EFS access point (if using EFS) |
+| efs_mount_path | Path where the EFS volume is mounted (if using EFS) |
+| efs_is_reused | Whether an existing EFS file system was reused |
 
 ## Sample Usage
 
@@ -62,21 +67,34 @@ jobs:
 
 ## Using Persistent Storage with EFS
 
-To create a Lambda function with persistent storage, use the `volume` parameter:
+To create a Lambda function with persistent storage, use the `volume-name` parameter:
 
 ```yaml
+# Basic usage - creates a new EFS volume
 - uses: alonch/actions-aws-function-python@main
   with:
     name: stateful-lambda-function
     entrypoint-file: src/app.py
     entrypoint-function: handler
-    volume: db
+    volume-name: my-data
+    timeout: 10 # Note: min 10 seconds when using EFS
+```
+
+```yaml
+# Advanced usage - reuses existing EFS volume if found
+- uses: alonch/actions-aws-function-python@main
+  with:
+    name: stateful-lambda-function
+    entrypoint-file: src/app.py
+    entrypoint-function: handler
+    volume-name: shared-data
+    volume-path: /mnt/shared
     timeout: 10 # Note: min 10 seconds when using EFS
 ```
 
 This will:
-1. Create an EFS file system in your default VPC
-2. Mount it to your Lambda function at `/mnt/db`
+1. Create an EFS file system in your default VPC (or reuse an existing one with matching volume-name tag)
+2. Mount it to your Lambda function at the specified path
 3. All data written to this path will persist across function invocations
 
 **Note:** Using EFS requires the Lambda to run in a VPC, which can increase cold start times. The minimum timeout when using EFS is 10 seconds.

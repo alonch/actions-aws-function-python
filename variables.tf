@@ -20,6 +20,12 @@ variable "arm" {
   default     = true
 }
 
+variable "worker" {
+  description = "Enable worker mode with SQS queue"
+  type        = string
+  default     = ""
+}
+
 variable "entrypoint_file" {
   description = "Path to the entrypoint file"
   type        = string

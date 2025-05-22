@@ -21,6 +21,10 @@ inputs:
     description: 'Python version. Supported versions: 3.8, 3.9, 3.10, 3.11, 3.12'
     required: false
     default: '3.11'
+  worker:
+    description: 'Enable worker mode with SQS queue'
+    required: false
+    default: ''
   entrypoint-file:
     description: 'Path to entry file'
     required: true
@@ -67,6 +71,12 @@ outputs:
   url:
     description: 'Public accessible URL, if allow-public-access=true'
     value: ${{ steps.terraform.outputs.url }}
+  queue-arn:
+    description: 'ARN of the SQS queue (if worker mode is enabled)'
+    value: ${{ steps.terraform.outputs.queue_arn }}
+  queue-name:
+    description: 'Name of the SQS queue (if worker mode is enabled)'
+    value: ${{ steps.terraform.outputs.queue_name }}
 
 runs:
   using: "composite"
@@ -92,6 +102,7 @@ runs:
         TF_VAR_name: ${{ inputs.name }}
         TF_VAR_arm: ${{ inputs.arm }}
         TF_VAR_python_version: ${{ inputs.python-version }}
+        TF_VAR_worker: ${{ inputs.worker }}
         TF_VAR_entrypoint_file: ${{ inputs.entrypoint-file }}
         TF_VAR_entrypoint_function: ${{ inputs.entrypoint-function }}
         TF_VAR_memory: ${{ inputs.memory }}
@@ -115,6 +126,7 @@ runs:
         TF_VAR_name: ${{ inputs.name }}
         TF_VAR_arm: ${{ inputs.arm }}
         TF_VAR_python_version: ${{ inputs.python-version }}
+        TF_VAR_worker: ${{ inputs.worker }}
         TF_VAR_entrypoint_file: ${{ inputs.entrypoint-file }}
         TF_VAR_entrypoint_function: ${{ inputs.entrypoint-function }}
         TF_VAR_memory: ${{ inputs.memory }}
@@ -138,6 +150,7 @@ runs:
         TF_VAR_name: ${{ inputs.name }}
         TF_VAR_arm: ${{ inputs.arm }}
         TF_VAR_python_version: ${{ inputs.python-version }}
+        TF_VAR_worker: ${{ inputs.worker }}
         TF_VAR_entrypoint_file: ${{ inputs.entrypoint-file }}
         TF_VAR_entrypoint_function: ${{ inputs.entrypoint-function }}
         TF_VAR_memory: ${{ inputs.memory }}
@@ -160,15 +173,26 @@ runs:
         ARN=$(terraform output -raw lambda_arn | tr -d '\r\n')
         URL=$(terraform output -raw lambda_url | tr -d '\r\n')
 
+        # Get queue outputs if worker mode is enabled
+        QUEUE_ARN=""
+        QUEUE_NAME=""
+        if [[ "${{ inputs.worker }}" == "true" ]]; then
+          QUEUE_ARN=$(terraform output -raw queue_arn | tr -d '\r\n')
+          QUEUE_NAME=$(terraform output -raw queue_name | tr -d '\r\n')
+        fi
+
         # Set outputs properly
         echo "arn=$ARN" >> "$GITHUB_OUTPUT"
         echo "url=$URL" >> "$GITHUB_OUTPUT"
+        echo "queue_arn=$QUEUE_ARN" >> "$GITHUB_OUTPUT"
+        echo "queue_name=$QUEUE_NAME" >> "$GITHUB_OUTPUT"
       shell: bash
       working-directory: ${{ github.action_path }}
       env:
         TF_VAR_name: ${{ inputs.name }}
         TF_VAR_arm: ${{ inputs.arm }}
         TF_VAR_python_version: ${{ inputs.python-version }}
+        TF_VAR_worker: ${{ inputs.worker }}
         TF_VAR_entrypoint_file: ${{ inputs.entrypoint-file }}
         TF_VAR_entrypoint_function: ${{ inputs.entrypoint-function }}
         TF_VAR_memory: ${{ inputs.memory }}

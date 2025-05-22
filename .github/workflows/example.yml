@@ -31,8 +31,25 @@ jobs:
         with:
           instance: python-lambda-example
 
+      - name: Deploy Lambda Worker
+        id: worker
+        uses: ./
+        with:
+          name: demo-worker
+          python-version: "3.11"
+          entrypoint-file: api/app.py
+          entrypoint-function: handler
+          artifacts: dist  # Specify the artifacts directory
+          volume-name: db  # EFS volume will be auto-provisioned
+          volume-path: /mnt/db
+          memory: 256
+          timeout: 10
+          worker: true  # Enable worker mode with SQS queue
+
+
       # Deploy the Lambda function
-      - name: Deploy Lambda function
+      - name: Deploy Lambda Web
+        id: deploy
         uses: ./
         with:
           name: demo
@@ -48,3 +65,11 @@ jobs:
             ENVIRONMENT: production
             LOG_LEVEL: INFO
           allow-public-access: true
+      # Optional: Output the created resources
+      - name: Output Lambda info
+        run: |
+          echo "Lambda ARN: ${{ steps.deploy.outputs.arn }}"
+          echo "Lambda URL: ${{ steps.deploy.outputs.url }}"
+          echo "Queue ARN: ${{ steps.deploy.outputs.queue-arn }}"
+          echo "Queue Name: ${{ steps.deploy.outputs.queue-name }}"
+        shell: bash

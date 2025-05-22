@@ -4,6 +4,10 @@ locals {
   runtime             = "python${var.python_version}"
   lambda_architecture = var.arm ? ["arm64"] : ["x86_64"]
 
+  # EFS configuration
+  create_efs = length(var.volume) > 0
+  mount_path = length(var.volume_path) > 0 ? var.volume_path : "/mnt/${var.volume}"
+
   # Parse environment variables from YAML
   env_vars = length(var.env) > 0 ? yamldecode(var.env) : {}
 
@@ -64,8 +68,7 @@ resource "aws_lambda_function" "function" {
   timeout          = var.timeout
   architectures    = local.lambda_architecture
   depends_on       = [aws_iam_role_policy_attachment.lambda_basic,
-                     aws_iam_role_policy_attachment.lambda_vpc_access,
-                     time_sleep.wait_for_efs_mount_targets]
+                     aws_iam_role_policy_attachment.lambda_vpc_access]
 
   environment {
     variables = local.env_vars
@@ -84,7 +87,8 @@ resource "aws_lambda_function" "function" {
   dynamic "file_system_config" {
     for_each = local.create_efs ? [1] : []
     content {
-      arn              = aws_efs_access_point.this[0].arn
+      # arn is provided directly from GitHub Action output via TF_VAR
+      arn              = var.efs_access_point_arn
       local_mount_path = local.mount_path
     }
   }

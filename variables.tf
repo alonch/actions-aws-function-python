@@ -77,7 +77,31 @@ variable "allow_public_access" {
 }
 
 variable "volume" {
-  description = "EFS volume mount point. If set, an EFS volume will be created and mounted to /mnt/{volume_name}"
+  description = "EFS volume name. If set, an EFS volume will be attached to the Lambda function"
+  type        = string
+  default     = ""
+}
+
+variable "volume_path" {
+  description = "Mount path for the EFS volume within the Lambda function (defaults to /mnt/{volume})"
+  type        = string
+  default     = ""
+}
+
+variable "efs_access_point_arn" {
+  description = "ARN of the EFS access point (provided by GitHub Action)"
+  type        = string
+  default     = ""
+}
+
+variable "efs_id" {
+  description = "ID of the EFS file system (provided by GitHub Action)"
+  type        = string
+  default     = ""
+}
+
+variable "efs_arn" {
+  description = "ARN of the EFS file system (provided by GitHub Action)"
   type        = string
   default     = ""
 }

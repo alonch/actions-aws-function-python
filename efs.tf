@@ -1,12 +1,7 @@
-locals {
-  create_efs = length(var.volume) > 0
-  mount_path = "/mnt/${var.volume}"
-}
-
-# Get default VPC and subnets
+# Get default VPC and subnets - still needed for Lambda VPC configuration
 data "aws_vpc" "default" {
-  count      = local.create_efs ? 1 : 0
-  default    = true
+  count   = local.create_efs ? 1 : 0
+  default = true
 }
 
 data "aws_subnets" "default" {
@@ -18,33 +13,6 @@ data "aws_subnets" "default" {
   filter {
     name   = "default-for-az"
     values = ["true"]
-  }
-}
-
-# Create security group for EFS
-resource "aws_security_group" "efs" {
-  count       = local.create_efs ? 1 : 0
-  name        = "${var.name}-efs-sg-${random_id.suffix.hex}"
-  description = "Allow NFS traffic from Lambda to EFS"
-  vpc_id      = data.aws_vpc.default[0].id
-
-  ingress {
-    description     = "NFS from Lambda"
-    from_port       = 2049
-    to_port         = 2049
-    protocol        = "tcp"
-    security_groups = [aws_security_group.lambda[0].id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "${var.name}-efs-sg-${random_id.suffix.hex}"
   }
 }
 
@@ -64,62 +32,6 @@ resource "aws_security_group" "lambda" {
 
   tags = {
     Name = "${var.name}-lambda-sg-${random_id.suffix.hex}"
-  }
-}
-
-# Create EFS file system
-resource "aws_efs_file_system" "this" {
-  count          = local.create_efs ? 1 : 0
-  creation_token = "${var.name}-efs-${random_id.suffix.hex}"
-  encrypted      = true
-
-  lifecycle_policy {
-    transition_to_ia = "AFTER_30_DAYS"
-  }
-
-  tags = {
-    Name = "${var.name}-efs-${random_id.suffix.hex}"
-  }
-}
-
-# Create mount targets in all available subnets
-resource "aws_efs_mount_target" "this" {
-  count           = local.create_efs ? length(data.aws_subnets.default[0].ids) : 0
-  file_system_id  = aws_efs_file_system.this[0].id
-  subnet_id       = data.aws_subnets.default[0].ids[count.index]
-  security_groups = [aws_security_group.efs[0].id]
-}
-
-# Wait for EFS mount targets to become fully available
-# This prevents the "not all are in the available life cycle state yet" error
-resource "time_sleep" "wait_for_efs_mount_targets" {
-  count           = local.create_efs ? 1 : 0
-  depends_on      = [aws_efs_mount_target.this]
-  create_duration = "90s"
-}
-
-# Create access point with proper directory permissions
-resource "aws_efs_access_point" "this" {
-  count          = local.create_efs ? 1 : 0
-  file_system_id = aws_efs_file_system.this[0].id
-  depends_on     = [time_sleep.wait_for_efs_mount_targets]
-
-  posix_user {
-    gid = 1000
-    uid = 1000
-  }
-
-  root_directory {
-    path = "/${var.volume}"
-    creation_info {
-      owner_gid   = 1000
-      owner_uid   = 1000
-      permissions = "755"
-    }
-  }
-
-  tags = {
-    Name = "${var.name}-access-point-${random_id.suffix.hex}"
   }
 }
 
@@ -146,11 +58,14 @@ resource "aws_iam_policy" "lambda_efs_access" {
           "elasticfilesystem:ClientWrite",
           "elasticfilesystem:ClientRootAccess"
         ]
-        Resource = aws_efs_file_system.this[0].arn
+        Resource = length(var.efs_arn) > 0 ? var.efs_arn : "arn:aws:elasticfilesystem:*:*:file-system/*"
         Condition = {
-          StringEquals = {
-            "elasticfilesystem:AccessPointArn" = aws_efs_access_point.this[0].arn
-          }
+          StringEquals = length(var.efs_access_point_arn) > 0 ? {
+            "elasticfilesystem:AccessPointArn" = var.efs_access_point_arn
+          } : null
+          StringLike = length(var.efs_access_point_arn) == 0 ? {
+            "elasticfilesystem:AccessPointArn" = "arn:aws:elasticfilesystem:*:*:access-point/*"
+          } : null
         }
       }
     ]

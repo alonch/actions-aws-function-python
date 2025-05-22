@@ -40,7 +40,7 @@ jobs:
           entrypoint-file: api/app.py
           entrypoint-function: handler
           artifacts: dist  # Specify the artifacts directory
-          volume-name: db
+          volume-name: db  # EFS volume will be auto-provisioned
           volume-path: /mnt/db
           memory: 256
           timeout: 10

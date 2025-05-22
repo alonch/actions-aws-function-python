@@ -51,8 +51,12 @@ inputs:
     description: 'Generate a public URL. WARNING: ANYONE ON THE INTERNET CAN RUN THIS FUNCTION'
     required: false
     default: ''
-  volume:
-    description: 'Creates an EFS volume and mounts it to /mnt/{volume}. Persists data across invocations.'
+  volume-name:
+    description: 'Name of the EFS volume to create or use. Will be managed by actions-aws-volume'
+    required: false
+    default: ''
+  volume-path:
+    description: 'Path where the EFS volume will be mounted in Lambda (defaults to /mnt/{volume-name})'
     required: false
     default: ''
 
@@ -67,6 +71,14 @@ outputs:
 runs:
   using: "composite"
   steps:
+    # Provision EFS volume if volume-name is specified
+    - name: Provision EFS volume
+      id: efs
+      uses: realsensesolutions/actions-aws-volume@main
+      if: inputs.volume-name != ''
+      with:
+        name: ${{ inputs.volume-name }}
+
     - name: Terraform init
       run: |
         terraform init \
@@ -88,7 +100,11 @@ runs:
         TF_VAR_artifacts: ${{ github.workspace }}/${{ inputs.artifacts }}
         TF_VAR_env: ${{ inputs.env }}
         TF_VAR_permissions: ${{ inputs.permissions }}
-        TF_VAR_volume: ${{ inputs.volume }}
+        TF_VAR_volume: ${{ inputs.volume-name }}
+        TF_VAR_volume_path: ${{ inputs.volume-path }}
+        TF_VAR_efs_access_point_arn: ${{ steps.efs.outputs.access_point_arn }}
+        TF_VAR_efs_id: ${{ steps.efs.outputs.efs_id }}
+        TF_VAR_efs_arn: ${{ steps.efs.outputs.efs_arn }}
 
     - name: Terraform plan
       if: inputs.action == 'plan'
@@ -107,7 +123,11 @@ runs:
         TF_VAR_artifacts: ${{ github.workspace }}/${{ inputs.artifacts }}
         TF_VAR_env: ${{ inputs.env }}
         TF_VAR_permissions: ${{ inputs.permissions }}
-        TF_VAR_volume: ${{ inputs.volume }}
+        TF_VAR_volume: ${{ inputs.volume-name }}
+        TF_VAR_volume_path: ${{ inputs.volume-path }}
+        TF_VAR_efs_access_point_arn: ${{ steps.efs.outputs.access_point_arn }}
+        TF_VAR_efs_id: ${{ steps.efs.outputs.efs_id }}
+        TF_VAR_efs_arn: ${{ steps.efs.outputs.efs_arn }}
 
     - name: Terraform destroy
       if: inputs.action == 'destroy'
@@ -126,7 +146,11 @@ runs:
         TF_VAR_artifacts: ${{ github.workspace }}/${{ inputs.artifacts }}
         TF_VAR_env: ${{ inputs.env }}
         TF_VAR_permissions: ${{ inputs.permissions }}
-        TF_VAR_volume: ${{ inputs.volume }}
+        TF_VAR_volume: ${{ inputs.volume-name }}
+        TF_VAR_volume_path: ${{ inputs.volume-path }}
+        TF_VAR_efs_access_point_arn: ${{ steps.efs.outputs.access_point_arn }}
+        TF_VAR_efs_id: ${{ steps.efs.outputs.efs_id }}
+        TF_VAR_efs_arn: ${{ steps.efs.outputs.efs_arn }}
 
     - name: Terraform apply
       id: terraform
@@ -153,4 +177,8 @@ runs:
         TF_VAR_artifacts: ${{ github.workspace }}/${{ inputs.artifacts }}
         TF_VAR_env: ${{ inputs.env }}
         TF_VAR_permissions: ${{ inputs.permissions }}
-        TF_VAR_volume: ${{ inputs.volume }}
+        TF_VAR_volume: ${{ inputs.volume-name }}
+        TF_VAR_volume_path: ${{ inputs.volume-path }}
+        TF_VAR_efs_access_point_arn: ${{ steps.efs.outputs.access_point_arn }}
+        TF_VAR_efs_id: ${{ steps.efs.outputs.efs_id }}
+        TF_VAR_efs_arn: ${{ steps.efs.outputs.efs_arn }}

@@ -83,6 +83,29 @@ outputs:
 runs:
   using: "composite"
   steps:
+    - name: Discover existing EFS by tag
+      if: inputs.volume-name != ''
+      run: |
+        echo "Checking for existing EFS with volume-name tag: ${{ inputs.volume-name }}"
+
+        # Use AWS CLI to find EFS with matching tag
+        EXISTING_EFS=$(aws efs describe-file-systems \
+          --query "FileSystems[?Tags[?Key=='volume-name' && Value=='${{ inputs.volume-name }}']].FileSystemId" \
+          --output text)
+
+        if [ -n "$EXISTING_EFS" ]; then
+          # If multiple results, just take the first one
+          EFS_ID=$(echo $EXISTING_EFS | awk '{print $1}')
+          echo "Found existing EFS with ID: $EFS_ID"
+          echo "EXISTING_EFS_ID=$EFS_ID" >> $GITHUB_ENV
+          echo "EFS_REUSED=true" >> $GITHUB_ENV
+        else
+          echo "No existing EFS found with tag volume-name=${{ inputs.volume-name }}"
+          echo "EXISTING_EFS_ID=" >> $GITHUB_ENV
+          echo "EFS_REUSED=false" >> $GITHUB_ENV
+        fi
+      shell: bash
+
     - name: Terraform init
       run: |
         terraform init \
@@ -106,6 +129,7 @@ runs:
         TF_VAR_permissions: ${{ inputs.permissions }}
         TF_VAR_volume_name: ${{ inputs.volume-name }}
         TF_VAR_volume_path: ${{ inputs.volume-path }}
+        TF_VAR_existing_efs_id: ${{ env.EXISTING_EFS_ID }}
 
     - name: Terraform plan
       if: inputs.action == 'plan'
@@ -126,6 +150,7 @@ runs:
         TF_VAR_permissions: ${{ inputs.permissions }}
         TF_VAR_volume_name: ${{ inputs.volume-name }}
         TF_VAR_volume_path: ${{ inputs.volume-path }}
+        TF_VAR_existing_efs_id: ${{ env.EXISTING_EFS_ID }}
 
     - name: Terraform destroy
       if: inputs.action == 'destroy'
@@ -146,6 +171,7 @@ runs:
         TF_VAR_permissions: ${{ inputs.permissions }}
         TF_VAR_volume_name: ${{ inputs.volume-name }}
         TF_VAR_volume_path: ${{ inputs.volume-path }}
+        TF_VAR_existing_efs_id: ${{ env.EXISTING_EFS_ID }}
 
     - name: Terraform apply
       id: terraform
@@ -157,7 +183,9 @@ runs:
         EFS_ID=$(terraform output -raw efs_filesystem_id | tr -d '\r\n')
         EFS_AP=$(terraform output -raw efs_access_point_id | tr -d '\r\n')
         EFS_PATH=$(terraform output -raw efs_mount_path | tr -d '\r\n')
-        EFS_REUSED=$(terraform output -raw efs_is_reused | tr -d '\r\n')
+
+        # Use the EFS_REUSED value from our discovery step
+        EFS_REUSED="${{ env.EFS_REUSED }}"
 
         # Set outputs properly
         echo "arn=$ARN" >> "$GITHUB_OUTPUT"
@@ -182,3 +210,4 @@ runs:
         TF_VAR_permissions: ${{ inputs.permissions }}
         TF_VAR_volume_name: ${{ inputs.volume-name }}
         TF_VAR_volume_path: ${{ inputs.volume-path }}
+        TF_VAR_existing_efs_id: ${{ env.EXISTING_EFS_ID }}

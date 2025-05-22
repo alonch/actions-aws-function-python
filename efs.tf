@@ -2,34 +2,35 @@ locals {
   # Handle volume name specification
   volume_name = var.volume_name
 
-  # Check if volume name is specified
+  # Check if volume name is specified and if we have an existing EFS ID
   has_volume = local.volume_name != ""
-}
+  has_existing_efs = var.existing_efs_id != ""
 
-# Find existing EFS file systems with matching volume-name tag
-data "aws_efs_file_systems" "existing_efs" {
-  count = local.has_volume ? 1 : 0
-
-  tags = {
-    "volume-name" = local.volume_name
-  }
-}
-
-locals {
-  # Check if matching EFS exists
-  existing_efs_count = local.has_volume ? length(data.aws_efs_file_systems.existing_efs[0].ids) : 0
-  # Check if we need to create a new EFS volume
-  create_new_efs = local.has_volume && local.existing_efs_count == 0
-  # Flag to determine if EFS mounting is needed (either new or existing)
+  # Determine if we need to create a new EFS or use existing
+  create_new_efs = local.has_volume && !local.has_existing_efs
   use_efs = local.has_volume
+
   # Set volume path based on volume name
   volume_path = var.volume_path != "" ? var.volume_path : (local.has_volume ? "/mnt/${local.volume_name}" : "")
+
+  # Set file system ID based on whether we're using existing or new
+  file_system_id = local.has_existing_efs ? var.existing_efs_id : (local.create_new_efs ? aws_efs_file_system.this[0].id : "")
+  file_system_arn = local.has_existing_efs ? "arn:aws:elasticfilesystem:${data.aws_region.current[0].name}:${data.aws_caller_identity.current[0].account_id}:file-system/${var.existing_efs_id}" : (local.create_new_efs ? aws_efs_file_system.this[0].arn : "")
 }
 
-# Get the first matched EFS file system (if any)
-data "aws_efs_file_system" "selected" {
-  count     = local.has_volume && local.existing_efs_count > 0 ? 1 : 0
-  file_system_id = tolist(data.aws_efs_file_systems.existing_efs[0].ids)[0]
+# Get AWS region and account ID for ARN construction
+data "aws_region" "current" {
+  count = local.use_efs ? 1 : 0
+}
+
+data "aws_caller_identity" "current" {
+  count = local.use_efs ? 1 : 0
+}
+
+# Get existing EFS details if we're using an existing EFS
+data "aws_efs_file_system" "existing" {
+  count = local.has_existing_efs ? 1 : 0
+  file_system_id = var.existing_efs_id
 }
 
 # Get default VPC and subnets
@@ -98,7 +99,7 @@ resource "aws_security_group" "lambda" {
   }
 }
 
-# Create EFS file system (only if no matching one exists)
+# Create EFS file system (only if no existing one is provided)
 resource "aws_efs_file_system" "this" {
   count          = local.create_new_efs ? 1 : 0
   creation_token = "${var.name}-efs-${random_id.suffix.hex}"
@@ -116,8 +117,8 @@ resource "aws_efs_file_system" "this" {
 
 # Get existing mount targets if using existing EFS
 data "aws_efs_mount_targets" "existing" {
-  count = local.use_efs && !local.create_new_efs ? 1 : 0
-  file_system_id = data.aws_efs_file_system.selected[0].id
+  count = local.has_existing_efs ? 1 : 0
+  file_system_id = var.existing_efs_id
 }
 
 # Create mount targets in all available subnets (only for new EFS)
@@ -136,7 +137,7 @@ resource "time_sleep" "wait_for_efs_mount_targets" {
   create_duration = "90s"
 }
 
-# Create access point with proper directory permissions
+# Create access point with proper directory permissions for new EFS
 resource "aws_efs_access_point" "new" {
   count          = local.create_new_efs ? 1 : 0
   file_system_id = aws_efs_file_system.this[0].id
@@ -164,8 +165,8 @@ resource "aws_efs_access_point" "new" {
 
 # Create access point for existing EFS
 resource "aws_efs_access_point" "existing" {
-  count          = local.use_efs && !local.create_new_efs ? 1 : 0
-  file_system_id = data.aws_efs_file_system.selected[0].id
+  count          = local.has_existing_efs ? 1 : 0
+  file_system_id = var.existing_efs_id
 
   posix_user {
     gid = 1000
@@ -189,10 +190,8 @@ resource "aws_efs_access_point" "existing" {
 
 # Local to determine which access point to use
 locals {
-  access_point_id = local.create_new_efs ? aws_efs_access_point.new[0].id : (local.use_efs && !local.create_new_efs ? aws_efs_access_point.existing[0].id : "")
-  access_point_arn = local.create_new_efs ? aws_efs_access_point.new[0].arn : (local.use_efs && !local.create_new_efs ? aws_efs_access_point.existing[0].arn : "")
-  file_system_id = local.create_new_efs ? aws_efs_file_system.this[0].id : (local.use_efs && !local.create_new_efs ? data.aws_efs_file_system.selected[0].id : "")
-  file_system_arn = local.create_new_efs ? aws_efs_file_system.this[0].arn : (local.use_efs && !local.create_new_efs ? data.aws_efs_file_system.selected[0].arn : "")
+  access_point_id = local.create_new_efs ? aws_efs_access_point.new[0].id : (local.has_existing_efs ? aws_efs_access_point.existing[0].id : "")
+  access_point_arn = local.create_new_efs ? aws_efs_access_point.new[0].arn : (local.has_existing_efs ? aws_efs_access_point.existing[0].arn : "")
 }
 
 # Add necessary permissions to Lambda execution role

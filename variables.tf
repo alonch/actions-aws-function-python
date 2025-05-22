@@ -87,3 +87,9 @@ variable "volume_path" {
   type        = string
   default     = ""
 }
+
+variable "existing_efs_id" {
+  description = "ID of an existing EFS file system to use. If provided, a new EFS will not be created."
+  type        = string
+  default     = ""
+}

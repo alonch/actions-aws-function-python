@@ -25,5 +25,5 @@ output "efs_mount_path" {
 
 output "efs_is_reused" {
   description = "Whether an existing EFS file system was reused"
-  value       = local.use_efs && !local.create_new_efs
+  value       = local.has_existing_efs
 }

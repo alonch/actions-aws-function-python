@@ -28,7 +28,35 @@ locals {
   env_vars = length(var.env) > 0 ? yamldecode(var.env) : {}
 
   # Parse permissions from YAML
-  permissions = length(var.permissions) > 0 ? yamldecode(var.permissions) : {}
+  permissions_map = length(var.permissions) > 0 ? yamldecode(var.permissions) : {}
+
+  # Service to policy mapping
+  services = {
+    s3 = {
+      read  = ["arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"]
+      write = ["arn:aws:iam::aws:policy/AmazonS3FullAccess"]
+    }
+    dynamodb = {
+      read  = ["arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess"]
+      write = ["arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"]
+    }
+    sqs = {
+      read  = ["arn:aws:iam::aws:policy/AmazonSQSReadOnlyAccess"]
+      write = ["arn:aws:iam::aws:policy/AmazonSQSFullAccess"]
+    }
+  }
+
+  # Generate policy ARNs from permissions
+  service_policies = flatten([
+    for service, access_level in local.permissions_map :
+      lookup(local.services, service, {})[access_level] if can(lookup(local.services, service, {})[access_level])
+  ])
+
+  # Combine base Lambda policies with service-specific policies
+  policy_arns = concat(
+    ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"],
+    local.service_policies
+  )
 
   # Determine if we should create a function URL
   create_function_url = length(var.allow_public_access) > 0
@@ -70,6 +98,14 @@ resource "aws_iam_role" "lambda_role" {
 resource "aws_iam_role_policy_attachment" "lambda_basic" {
   role       = aws_iam_role.lambda_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+# Attach service-specific permissions
+resource "aws_iam_role_policy_attachment" "service_permissions" {
+  for_each = { for idx, arn in local.service_policies : idx => arn }
+
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = each.value
 }
 
 # Create the Lambda function

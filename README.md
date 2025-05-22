@@ -14,6 +14,7 @@ This GitHub Action provisions an AWS Lambda function using Python runtime via Te
 | name                | Function name                                                                          | true     | ""                                           |
 | arm                 | Run in ARM compute                                                                     | false    | true                                         |
 | python-version      | Python version, Supported versions: 3.8, 3.9, 3.10, 3.11, 3.12                         | false    | 3.11                                         |
+| worker              | Enable worker mode with SQS queue                                                      | false    | ""                                           |
 | entrypoint-file     | Path to entry file                                                                     | true     | ""                                           |
 | entrypoint-function | Function on the entrypoint-file to handle events                                       | true     | ""                                           |
 | memory              | 128 (in MB) to 10,240 (in MB)                                                          | false    | 128                                          |
@@ -26,10 +27,12 @@ This GitHub Action provisions an AWS Lambda function using Python runtime via Te
 
 ## Outputs
 
-| Name | Description                                         |
-| ---- | --------------------------------------------------- |
-| url  | Public accessible URL, if allow-public-access=true |
-| arn  | AWS Lambda ARN                                      |
+| Name       | Description                                         |
+| ---------- | --------------------------------------------------- |
+| url        | Public accessible URL, if allow-public-access=true  |
+| arn        | AWS Lambda ARN                                      |
+| queue-arn  | ARN of the SQS queue (if worker mode is enabled)    |
+| queue-name | Name of the SQS queue (if worker mode is enabled)   |
 
 ## Sample Usage
 
@@ -80,3 +83,47 @@ This will:
 3. All data written to this path will persist across function invocations
 
 **Note:** Using EFS requires the Lambda to run in a VPC, which can increase cold start times. The minimum timeout when using EFS is 10 seconds.
+
+## Worker Mode with SQS Queue
+
+To create a Lambda function that processes SQS messages, use the `worker` parameter:
+
+```yaml
+- uses: alonch/actions-aws-function-python@main
+  id: worker-lambda
+  with:
+    name: worker-function
+    entrypoint-file: src/worker.py
+    entrypoint-function: process_message
+    worker: true
+    timeout: 30
+    permissions: |
+      sqs: write
+      s3: read
+```
+
+This will:
+1. Create an SQS queue
+2. Set up an event source mapping to trigger your Lambda from queue messages
+3. Configure batch size of 1 for message processing
+4. Output the queue ARN and name for reference
+
+You can access the created queue details using:
+- `${{ steps.worker-lambda.outputs.queue-arn }}`
+- `${{ steps.worker-lambda.outputs.queue-name }}`
+
+## Service Permissions
+
+The action supports configuring Lambda permissions for AWS services using a simple YAML format:
+
+```yaml
+permissions: |
+  s3: read       # Read-only access to S3
+  dynamodb: write  # Full access to DynamoDB
+  sqs: write     # Full access to SQS
+```
+
+Supported services and access levels:
+- `s3`: `read` (ReadOnly) or `write` (FullAccess)
+- `dynamodb`: `read` (ReadOnly) or `write` (FullAccess)
+- `sqs`: `read` (ReadOnly) or `write` (FullAccess)

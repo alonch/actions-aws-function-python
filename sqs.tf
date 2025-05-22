@@ -1,7 +1,6 @@
 locals {
-  # Determine if we should create a queue for worker mode
-  create_queue = var.worker == "true"
-  queue_name   = "${var.name}-queue-${random_id.suffix.hex}"
+  # Use centralized queue name
+  queue_name = "${var.name}-queue-${random_id.suffix.hex}"
 }
 
 # Create SQS queue for worker mode
@@ -35,7 +34,6 @@ resource "aws_lambda_event_source_mapping" "sqs_trigger" {
   # Enable the trigger
   enabled = true
 }
-
 # Attach SQS permissions to Lambda execution role
 resource "aws_iam_role_policy_attachment" "lambda_sqs" {
   count      = local.create_queue ? 1 : 0

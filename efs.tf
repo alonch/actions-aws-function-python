@@ -1,27 +1,11 @@
-# Get default VPC and subnets - still needed for Lambda VPC configuration
-data "aws_vpc" "default" {
-  count   = local.create_efs ? 1 : 0
-  default = true
-}
-
-data "aws_subnets" "default" {
-  count = local.create_efs ? 1 : 0
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default[0].id]
-  }
-  filter {
-    name   = "default-for-az"
-    values = ["true"]
-  }
-}
+# Get VPC and subnets - use provided network or fall back to default
 
 # Create security group for Lambda
 resource "aws_security_group" "lambda" {
   count       = local.create_efs ? 1 : 0
   name        = "${var.name}-lambda-sg-${random_id.suffix.hex}"
   description = "Allow Lambda to access EFS"
-  vpc_id      = data.aws_vpc.default[0].id
+  vpc_id      = local.vpc_id
 
   egress {
     from_port   = 0

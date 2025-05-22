@@ -8,6 +8,11 @@ locals {
   create_efs = length(var.volume) > 0
   mount_path = length(var.volume_path) > 0 ? var.volume_path : "/mnt/${var.volume}"
 
+  # Network configuration - use provided network or fall back to default
+  use_custom_network = length(var.vpc_id) > 0 && length(var.subnet_private_ids) > 0
+  vpc_id = local.use_custom_network ? var.vpc_id : (local.create_efs ? data.aws_vpc.default[0].id : "")
+  subnet_ids = local.use_custom_network ? split(",", var.subnet_private_ids) : (local.create_efs ? data.aws_subnets.default[0].ids : [])
+
   # Debug output - will show in Terraform logs
   debug_arn_received = "EFS Access Point ARN received: ${var.efs_access_point_arn}"
 
@@ -137,7 +142,7 @@ resource "aws_lambda_function" "function" {
   dynamic "vpc_config" {
     for_each = local.create_efs ? [1] : []
     content {
-      subnet_ids         = data.aws_subnets.default[0].ids
+      subnet_ids         = local.subnet_ids
       security_group_ids = [aws_security_group.lambda[0].id]
     }
   }
@@ -174,6 +179,24 @@ resource "aws_lambda_function_url" "function_url" {
   #  allow_headers = ["*"]
   #  max_age       = 86400
   #}
+}
+
+# VPC and subnet data sources for fallback to default VPC
+data "aws_vpc" "default" {
+  count   = local.create_efs && !local.use_custom_network ? 1 : 0
+  default = true
+}
+
+data "aws_subnets" "default" {
+  count = local.create_efs && !local.use_custom_network ? 1 : 0
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default[0].id]
+  }
+  filter {
+    name   = "default-for-az"
+    values = ["true"]
+  }
 }
 
 # Get current region

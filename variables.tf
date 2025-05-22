@@ -111,3 +111,22 @@ variable "efs_arn" {
   type        = string
   default     = ""
 }
+
+# Network variables from actions-aws-network
+variable "vpc_id" {
+  description = "VPC ID from network action (optional)"
+  type        = string
+  default     = ""
+}
+
+variable "subnet_private_ids" {
+  description = "Private subnet IDs from network action (comma-separated)"
+  type        = string
+  default     = ""
+}
+
+variable "sg_private_id" {
+  description = "Private security group ID from network action (optional)"
+  type        = string
+  default     = ""
+}

@@ -107,6 +107,38 @@ This will:
 
 **Note:** When using worker mode, your Lambda handler function should expect SQS event payloads.
 
+## Network Integration
+
+This action integrates with [actions-aws-network](https://github.com/realsensesolutions/actions-aws-network) to deploy Lambda functions in custom VPC infrastructure with enhanced security.
+
+### Using Custom Network (Recommended)
+
+When you use the network action before this Lambda action, your functions will be deployed in **private subnets** for better security:
+
+```yaml
+- uses: realsensesolutions/actions-aws-network@main
+  with:
+    action: apply
+- uses: alonch/actions-aws-function-python@main
+  with:
+    name: secure-lambda
+    entrypoint-file: src/app.py
+    entrypoint-function: handler
+    volume: db  # EFS will be created in private subnets
+```
+
+### Network Architecture Benefits
+
+When using the network action, your Lambda gets:
+- **Private subnets**: `10.0.32.0/20` and `10.0.48.0/20` across multiple AZs
+- **NAT Gateway**: For secure internet access from private subnets
+- **Pre-configured security groups**: Optimized for private network access
+- **Multi-AZ deployment**: High availability and fault tolerance
+
+### Fallback Behavior
+
+If the network action is not used, Lambda functions with EFS will deploy in the **default VPC** with default subnets. This maintains backward compatibility with existing workflows.
+
 ## Service Permissions
 
 You can specify AWS service permissions using the `permissions` parameter:

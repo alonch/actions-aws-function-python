@@ -31,6 +31,12 @@ jobs:
         with:
           instance: python-lambda-example
 
+      # Optional: Set up network infrastructure (VPC, subnets, security groups)
+      # When this action runs, Lambda functions will be deployed to private subnets
+      # If omitted, Lambda functions will use the default VPC (when EFS is enabled)
+      - name: Set up network
+        uses: realsensesolutions/actions-aws-network@main
+
       - name: Deploy Lambda Worker
         id: worker
         uses: ./

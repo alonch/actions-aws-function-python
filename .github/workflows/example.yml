@@ -70,6 +70,6 @@ jobs:
         run: |
           echo "Lambda ARN: ${{ steps.deploy.outputs.arn }}"
           echo "Lambda URL: ${{ steps.deploy.outputs.url }}"
-          echo "Queue ARN: ${{ steps.deploy.outputs.queue-arn }}"
-          echo "Queue Name: ${{ steps.deploy.outputs.queue-name }}"
+          echo "Queue ARN: ${{ steps.worker.outputs.queue-arn }}"
+          echo "Queue Name: ${{ steps.worker.outputs.queue-name }}"
         shell: bash

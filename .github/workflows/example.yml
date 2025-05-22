@@ -78,4 +78,5 @@ jobs:
           echo "Lambda URL: ${{ steps.deploy.outputs.url }}"
           echo "Queue ARN: ${{ steps.worker.outputs.queue-arn }}"
           echo "Queue Name: ${{ steps.worker.outputs.queue-name }}"
+          echo "Queue URL: ${{ steps.worker.outputs.queue-url }}"
         shell: bash

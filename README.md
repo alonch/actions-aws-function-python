@@ -33,6 +33,7 @@ This GitHub Action provisions an AWS Lambda function using Python runtime via Te
 | arn        | AWS Lambda ARN                                      |
 | queue-arn  | ARN of the SQS queue (if worker mode is enabled)    |
 | queue-name | Name of the SQS queue (if worker mode is enabled)   |
+| queue-url  | URL of the SQS queue (if worker mode is enabled)    |
 
 ## Sample Usage
 

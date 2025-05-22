@@ -46,8 +46,8 @@ locals {
     }
   }
 
-  # Base policies to always include
-  base_policies = ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"]
+  # Base policies to always include - removed from dynamic attachment
+  # base_policies = ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"]
 
   # SQS policy for worker mode
   worker_policies = var.worker == "true" ? ["arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole"] : []
@@ -59,8 +59,8 @@ locals {
       lookup(lookup(local.services, service, {}), access_level, []) : []
   ]) : []
 
-  # Combine all policies
-  policy_arns = distinct(concat(local.base_policies, local.worker_policies, local.service_policies))
+  # Combine all policies EXCEPT the basic execution role
+  policy_arns = distinct(concat(local.worker_policies, local.service_policies))
 
   # Determine if we should create a function URL
   create_function_url = length(var.allow_public_access) > 0
@@ -98,7 +98,13 @@ resource "aws_iam_role" "lambda_role" {
   })
 }
 
-# Attach basic Lambda execution policy
+# Keep the basic Lambda execution policy as a separate attachment
+resource "aws_iam_role_policy_attachment" "lambda_basic" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+# Dynamic policy attachments for additional policies
 resource "aws_iam_role_policy_attachment" "lambda_policies" {
   for_each = { for idx, arn in local.policy_arns : idx => arn }
 
@@ -117,7 +123,11 @@ resource "aws_lambda_function" "function" {
   memory_size      = var.memory
   timeout          = var.timeout
   architectures    = local.lambda_architecture
-  depends_on       = [aws_iam_role_policy_attachment.lambda_policies, aws_iam_role_policy_attachment.lambda_vpc_access]
+  depends_on       = [
+    aws_iam_role_policy_attachment.lambda_basic,
+    aws_iam_role_policy_attachment.lambda_policies,
+    aws_iam_role_policy_attachment.lambda_vpc_access
+  ]
 
   environment {
     variables = local.env_vars

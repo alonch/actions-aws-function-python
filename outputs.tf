@@ -17,3 +17,8 @@ output "queue_name" {
   description = "Name of the SQS queue (if worker mode is enabled)"
   value       = local.create_queue ? aws_sqs_queue.worker_queue[0].name : ""
 }
+
+output "queue_url" {
+  description = "URL of the SQS queue (if worker mode is enabled)"
+  value       = local.create_queue ? aws_sqs_queue.worker_queue[0].url : ""
+}

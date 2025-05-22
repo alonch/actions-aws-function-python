@@ -77,6 +77,9 @@ outputs:
   queue-name:
     description: 'Name of the SQS queue (if worker mode is enabled)'
     value: ${{ steps.terraform.outputs.queue_name }}
+  queue-url:
+    description: 'URL of the SQS queue (if worker mode is enabled)'
+    value: ${{ steps.terraform.outputs.queue_url }}
 
 runs:
   using: "composite"
@@ -176,9 +179,11 @@ runs:
         # Get queue outputs if worker mode is enabled
         QUEUE_ARN=""
         QUEUE_NAME=""
+        QUEUE_URL=""
         if [[ "${{ inputs.worker }}" == "true" ]]; then
           QUEUE_ARN=$(terraform output -raw queue_arn | tr -d '\r\n')
           QUEUE_NAME=$(terraform output -raw queue_name | tr -d '\r\n')
+          QUEUE_URL=$(terraform output -raw queue_url | tr -d '\r\n')
         fi
 
         # Set outputs properly
@@ -186,6 +191,7 @@ runs:
         echo "url=$URL" >> "$GITHUB_OUTPUT"
         echo "queue_arn=$QUEUE_ARN" >> "$GITHUB_OUTPUT"
         echo "queue_name=$QUEUE_NAME" >> "$GITHUB_OUTPUT"
+        echo "queue_url=$QUEUE_URL" >> "$GITHUB_OUTPUT"
       shell: bash
       working-directory: ${{ github.action_path }}
       env:

@@ -36,4 +36,4 @@ resource "aws_lambda_event_source_mapping" "sqs_trigger" {
   enabled = true
 }
 
-# SQS policy attachment is now handled in main.tf through the policy_arns local
+# Note: SQS policy attachment is now handled in main.tf

@@ -46,9 +46,8 @@ jobs:
           timeout: 10
           worker: true  # Enable worker mode with SQS queue
           permissions: |
-            sqs: write
             s3: read
-            dynamodb: read
+            dynamodb: write
 
 
       # Deploy the Lambda function
@@ -71,7 +70,7 @@ jobs:
           allow-public-access: true
           permissions: |
             s3: read
-            dynamodb: write
+            sqs: write
       # Optional: Output the created resources
       - name: Output Lambda info
         run: |

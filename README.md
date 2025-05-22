@@ -86,44 +86,45 @@ This will:
 
 ## Worker Mode with SQS Queue
 
-To create a Lambda function that processes SQS messages, use the `worker` parameter:
+To create a Lambda function with a worker queue, use the `worker` parameter:
 
 ```yaml
 - uses: alonch/actions-aws-function-python@main
-  id: worker-lambda
+  id: worker
   with:
-    name: worker-function
-    entrypoint-file: src/worker.py
-    entrypoint-function: process_message
+    name: worker-lambda
+    entrypoint-file: src/app.py
+    entrypoint-function: handler
     worker: true
-    timeout: 30
-    permissions: |
-      sqs: write
-      s3: read
 ```
 
 This will:
 1. Create an SQS queue
-2. Set up an event source mapping to trigger your Lambda from queue messages
-3. Configure batch size of 1 for message processing
-4. Output the queue ARN and name for reference
+2. Configure the Lambda function to process messages from the queue
+3. Set up appropriate permissions
+4. Provide the queue ARN and name as outputs
 
-You can access the created queue details using:
-- `${{ steps.worker-lambda.outputs.queue-arn }}`
-- `${{ steps.worker-lambda.outputs.queue-name }}`
+**Note:** When using worker mode, your Lambda handler function should expect SQS event payloads.
 
 ## Service Permissions
 
-The action supports configuring Lambda permissions for AWS services using a simple YAML format:
+You can specify AWS service permissions using the `permissions` parameter:
 
 ```yaml
-permissions: |
-  s3: read       # Read-only access to S3
-  dynamodb: write  # Full access to DynamoDB
-  sqs: write     # Full access to SQS
+- uses: alonch/actions-aws-function-python@main
+  with:
+    name: lambda-with-permissions
+    entrypoint-file: src/app.py
+    entrypoint-function: handler
+    permissions: |
+      s3: read
+      dynamodb: write
+      sqs: write
 ```
 
 Supported services and access levels:
-- `s3`: `read` (ReadOnly) or `write` (FullAccess)
-- `dynamodb`: `read` (ReadOnly) or `write` (FullAccess)
-- `sqs`: `read` (ReadOnly) or `write` (FullAccess)
+- `s3`: `read` or `write`
+- `dynamodb`: `read` or `write`
+- `sqs`: `read` or `write`
+
+This uses standard AWS managed policies for each service and access level.

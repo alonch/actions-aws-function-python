@@ -30,7 +30,7 @@ locals {
   # Parse permissions from YAML
   permissions_map = length(var.permissions) > 0 ? yamldecode(var.permissions) : {}
 
-  # Service to policy mapping
+  # Services and their corresponding policies
   services = {
     s3 = {
       read  = ["arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"]
@@ -46,17 +46,21 @@ locals {
     }
   }
 
-  # Generate policy ARNs from permissions
-  service_policies = flatten([
-    for service, access_level in local.permissions_map :
-      lookup(local.services, service, {})[access_level] if can(lookup(local.services, service, {})[access_level])
-  ])
+  # Base policies to always include
+  base_policies = ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"]
 
-  # Combine base Lambda policies with service-specific policies
-  policy_arns = concat(
-    ["arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"],
-    local.service_policies
-  )
+  # SQS policy for worker mode
+  worker_policies = var.worker == "true" ? ["arn:aws:iam::aws:policy/service-role/AWSLambdaSQSQueueExecutionRole"] : []
+
+  # Process permissions to get list of policy ARNs
+  service_policies = length(var.permissions) > 0 ? flatten([
+    for service, access_level in local.permissions_map :
+    lookup(local.services, service, null) != null ?
+      lookup(lookup(local.services, service, {}), access_level, []) : []
+  ]) : []
+
+  # Combine all policies
+  policy_arns = distinct(concat(local.base_policies, local.worker_policies, local.service_policies))
 
   # Determine if we should create a function URL
   create_function_url = length(var.allow_public_access) > 0
@@ -95,14 +99,8 @@ resource "aws_iam_role" "lambda_role" {
 }
 
 # Attach basic Lambda execution policy
-resource "aws_iam_role_policy_attachment" "lambda_basic" {
-  role       = aws_iam_role.lambda_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
-
-# Attach service-specific permissions
-resource "aws_iam_role_policy_attachment" "service_permissions" {
-  for_each = { for idx, arn in local.service_policies : idx => arn }
+resource "aws_iam_role_policy_attachment" "lambda_policies" {
+  for_each = { for idx, arn in local.policy_arns : idx => arn }
 
   role       = aws_iam_role.lambda_role.name
   policy_arn = each.value
@@ -119,8 +117,7 @@ resource "aws_lambda_function" "function" {
   memory_size      = var.memory
   timeout          = var.timeout
   architectures    = local.lambda_architecture
-  depends_on       = [aws_iam_role_policy_attachment.lambda_basic,
-                     aws_iam_role_policy_attachment.lambda_vpc_access]
+  depends_on       = [aws_iam_role_policy_attachment.lambda_policies, aws_iam_role_policy_attachment.lambda_vpc_access]
 
   environment {
     variables = local.env_vars

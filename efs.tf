@@ -58,14 +58,11 @@ resource "aws_iam_policy" "lambda_efs_access" {
           "elasticfilesystem:ClientWrite",
           "elasticfilesystem:ClientRootAccess"
         ]
-        Resource = length(var.efs_arn) > 0 ? var.efs_arn : "arn:aws:elasticfilesystem:*:*:file-system/*"
+        Resource = "*"
         Condition = {
-          StringEquals = length(var.efs_access_point_arn) > 0 ? {
-            "elasticfilesystem:AccessPointArn" = var.efs_access_point_arn
-          } : null
-          StringLike = length(var.efs_access_point_arn) == 0 ? {
+          StringLike = {
             "elasticfilesystem:AccessPointArn" = "arn:aws:elasticfilesystem:*:*:access-point/*"
-          } : null
+          }
         }
       }
     ]

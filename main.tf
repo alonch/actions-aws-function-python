@@ -8,6 +8,22 @@ locals {
   create_efs = length(var.volume) > 0
   mount_path = length(var.volume_path) > 0 ? var.volume_path : "/mnt/${var.volume}"
 
+  # Debug output - will show in Terraform logs
+  debug_arn_received = "EFS Access Point ARN received: ${var.efs_access_point_arn}"
+
+  # Fix ARN format that's missing region and account
+  # Example of malformed: arn:aws:elasticfilesystem::12345:access-point/fsap-123
+  # Example of correct: arn:aws:elasticfilesystem:us-west-2:12345:access-point/fsap-123
+  formatted_arn = length(var.efs_access_point_arn) > 0 ? (
+    # Check common malformation pattern with :: (missing region)
+    can(regex("arn:aws:elasticfilesystem::\\d+:access-point/fsap-[a-f0-9]+", var.efs_access_point_arn)) ?
+      replace(var.efs_access_point_arn, "arn:aws:elasticfilesystem::", "arn:aws:elasticfilesystem:${data.aws_region.current.name}:") :
+      var.efs_access_point_arn
+  ) : ""
+
+  # Debug output - will show in Terraform logs
+  debug_arn_formatted = "EFS Access Point ARN formatted: ${local.formatted_arn}"
+
   # Parse environment variables from YAML
   env_vars = length(var.env) > 0 ? yamldecode(var.env) : {}
 
@@ -85,10 +101,10 @@ resource "aws_lambda_function" "function" {
 
   # EFS configuration
   dynamic "file_system_config" {
-    for_each = local.create_efs ? [1] : []
+    for_each = local.create_efs && length(local.formatted_arn) > 0 ? [1] : []
     content {
       # arn is provided directly from GitHub Action output via TF_VAR
-      arn              = var.efs_access_point_arn
+      arn              = local.formatted_arn
       local_mount_path = local.mount_path
     }
   }
@@ -116,3 +132,6 @@ resource "aws_lambda_function_url" "function_url" {
   #  max_age       = 86400
   #}
 }
+
+# Get current region
+data "aws_region" "current" {}

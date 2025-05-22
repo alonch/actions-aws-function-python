@@ -1,6 +1,6 @@
 locals {
   # Determine if we should create a queue for worker mode
-  create_queue = tobool(var.worker)
+  create_queue = var.worker == "true"
   queue_name   = "${var.name}-queue-${random_id.suffix.hex}"
 }
 

@@ -49,7 +49,7 @@ jobs:
           volume-name: db  # EFS volume will be auto-provisioned
           volume-path: /mnt/db
           memory: 256
-          timeout: 10
+          timeout: 15
           worker: true  # Enable worker mode with SQS queue
           permissions: |
             s3: read
@@ -69,7 +69,7 @@ jobs:
           volume-name: db  # EFS volume will be auto-provisioned
           volume-path: /mnt/db
           memory: 256
-          timeout: 10
+          timeout: 15
           env: |
             ENVIRONMENT: production
             LOG_LEVEL: INFO

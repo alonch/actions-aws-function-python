@@ -7,6 +7,14 @@ resource "aws_security_group" "lambda" {
   description = "Allow Lambda to access EFS"
   vpc_id      = local.vpc_id
 
+  # Allow Lambda to access EFS on port 2049 (NFS)
+  ingress {
+    from_port = 2049
+    to_port   = 2049
+    protocol  = "tcp"
+    self      = true
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
